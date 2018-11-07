@@ -14,6 +14,7 @@ pros::Motor mtr12(12);
 pros::Controller ctlr(pros::E_CONTROLLER_MASTER);
 
 pros::ADIPotentiometer* drfbPot;
+pros::ADILineSensor* ballSens;
 const int drfbMinPos = 1395, drfbMaxPos = 3882;
 
 int clamp(int n, int min, int max) { return n < min ? min : (n > max ? max : n); }
@@ -106,4 +107,5 @@ void setup() {
     drfbPid.kd = 2;
 
     drfbPot = new ADIPotentiometer(2);
+    ballSens = new ADILineSensor(8);
 }

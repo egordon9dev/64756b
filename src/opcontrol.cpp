@@ -40,6 +40,7 @@ void opcontrol() {
         dt = pros::millis() - prevT;
         prevT = pros::millis();
         pros::lcd::print(0, "%.2lfv      %d%%", pros::battery::get_voltage() / 1000.0, (int)pros::battery::get_capacity());
+        pros::lcd::print(2, "%d", ballSens.get_value());
         // std::cout << getDrfb() << std::endl;
         // DRIVE
         int joy[] = {(int)(ctlr.get_analog(ANALOG_RIGHT_X) * 12000.0 / 127.0), (int)(ctlr.get_analog(ANALOG_LEFT_Y) * 12000.0 / 127.0)};
