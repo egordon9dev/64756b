@@ -1,7 +1,7 @@
 #include "main.h"
 #include "pid.hpp"
 #include "setup.hpp"
-using namespace pros::literals;
+using namespace pros;
 /*
 Ch3         drive
 Ch1         turn
@@ -29,23 +29,20 @@ A, Y        flip  cap
 void opcontrol() {
     setup();
     double drv[] = {0, 0};
-    long prevT = 0;
+    int prevT = 0;
     int dt = 0;
     double prevFlywheel = 0, dFlywheel = 0;
-    bool prevDY = false, prevDA = false;
+    bool prevDY = false, prevDA = false, prevR1 = false, prevR2 = false;
+    int prevR1T = 0, prevR2T = 0;
     int clawCtr = 0;
-    std::cout << "the size is " << sizeof(int) << std::endl;
+    bool drfbPidRunning = false;
     while (true) {
         dt = pros::millis() - prevT;
         prevT = pros::millis();
         pros::lcd::print(0, "%.2lfv      %d%%", pros::battery::get_voltage() / 1000.0, (int)pros::battery::get_capacity());
-        // pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2, (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1, (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);
-
-        // std::cout << dFlywheel / dt << std::endl; //Flywheel
-        std::cout << getClaw() << std::endl;  // Claw
-
+        // std::cout << getDrfb() << std::endl;
         // DRIVE
-        int joy[] = {(int)(ctlr.get_analog(ANALOG_RIGHT_X) * 12000.0 / 127.0), (int)(ctlr.get_analog(ANALOG_RIGHT_Y) * 12000.0 / 127.0)};
+        int joy[] = {(int)(ctlr.get_analog(ANALOG_RIGHT_X) * 12000.0 / 127.0), (int)(ctlr.get_analog(ANALOG_LEFT_Y) * 12000.0 / 127.0)};
         // std::cout << joy[0] << ", " << joy[1] << std::endl;
         dFlywheel = getFlywheel() - prevFlywheel;
         prevFlywheel = getFlywheel();
@@ -57,18 +54,32 @@ void opcontrol() {
 
         // FLYWHEEL
         if (ctlr.get_digital(DIGITAL_UP)) {
-            setFlywheel(12000);
+            pidFlywheel(2.9);
+        } else if (ctlr.get_digital(DIGITAL_RIGHT)) {
+            pidFlywheel(2.5);
+        } else if (ctlr.get_digital(DIGITAL_DOWN)) {
+            pidFlywheel(0);
         } else {
-            setFlywheel(0);
+            pidFlywheel();
         }
 
         // drfb
-        if (ctlr.get_digital(DIGITAL_R1)) {
-            setDrfb(12000);
-        } else if (ctlr.get_digital(DIGITAL_R2)) {
-            setDrfb(-12000);
+        bool curR1 = ctlr.get_digital(DIGITAL_R1), curR2 = ctlr.get_digital(DIGITAL_R2);
+        double drfbPos = getDrfb();
+        // drfb (low to high)=(1395 to 3882)
+        if (curR1) {
+            drfbPidRunning = true;
+            pidDrfb(3200, 999999);
+            // 2470
+        } else if (curR2) {
+            drfbPidRunning = true;
+            pidDrfb(1420, 999999);
         } else {
-            setDrfb(0);
+            if (drfbPidRunning) {
+                pidDrfb();
+            } else {
+                setDrfb(0);
+            }
         }
 
         // CLAW
@@ -97,7 +108,8 @@ void opcontrol() {
         } else {
             intakeNone();
         }
-
+        if (ctlr.get_digital(DIGITAL_B)) return;
         pros::delay(10);
     }
+    delete drfbPot;
 }

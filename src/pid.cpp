@@ -1,6 +1,7 @@
 #include "pid.hpp"
 #include "main.h"
-Pid_t flywheelPid, clawPid;
+#include "setup.hpp"
+Pid_t flywheelPid, clawPid, drfbPid;
 Slew_t flywheelSlew, drfbSlew;
 Slew_t::Slew_t() {
     slewRate = 100.0;
@@ -8,9 +9,9 @@ Slew_t::Slew_t() {
     prevTime = pros::millis();
 }
 Pid_t::Pid_t() {
-    doneTime = LONG_MAX;
+    doneTime = INT_MAX;
     DONE_ZONE = 10;
-    maxIntegral = DBL_MAX;
+    maxIntegral = 9999999;
     iActiveZone = target = prevSensVal = sensVal = prevErr = errTot = unwind = deriv = kp = ki = kd = 0.0;
     prevTime = prevDUpdateTime = 0;
 }
@@ -19,7 +20,7 @@ Pid_t::Pid_t() {
   in: input voltage
 */
 double Slew_t::update(double in) {
-    long dt = pros::millis() - prevTime;
+    int dt = pros::millis() - prevTime;
     if (dt > 1000) dt = 0;
     prevTime = pros::millis();
     double maxIncrease = slewRate * dt;
@@ -35,7 +36,7 @@ double Slew_t::update(double in) {
 }
 // proportional + integral + derivative control feedback
 double Pid_t::update() {
-    long dt = pros::millis() - prevTime;
+    int dt = pros::millis() - prevTime;
     if (dt > 1000) dt = 0;
     prevTime = pros::millis();
     // PROPORTIONAL
