@@ -25,11 +25,13 @@ void setDR(int n) {
     mtr6.move_voltage(n);
     mtr7.move_voltage(n);
 }
+int getDR() { return mtr7.get_position(); }
 void setDL(int n) {
     n = clamp(n, -12000, 12000);
     mtr8.move_voltage(-n);
     mtr9.move_voltage(-n);
 }
+int getDL() { return -mtr9.get_position(); }
 //------------ Intake ---------------
 void intakeNone() { mtr5.move_voltage(0); }
 void intakeFront() { mtr5.move_voltage(12000); }
@@ -119,4 +121,8 @@ void setup() {
 
     drfbPot = new ADIPotentiometer(2);
     ballSens = new ADILineSensor(8);
+}
+
+void updateOdometry() {
+
 }

@@ -11,5 +11,11 @@
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void auton1() {}
+using namespace pros;
+void auton1() {
+  while(true) {
+    //updateOdometry();
+    delay(10);
+  }
+}
 void autonomous() { auton1(); }

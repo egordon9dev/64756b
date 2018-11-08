@@ -37,6 +37,7 @@ void opcontrol() {
     int clawCtr = 0;
     bool drfbPidRunning = false;
     IntakeState intakeState = IntakeState::NONE;
+    int ballSensT = INT_MAX;
     while (true) {
         dt = pros::millis() - prevT;
         prevT = pros::millis();
@@ -117,7 +118,12 @@ void opcontrol() {
             intakeState = IntakeState::FRONT;
         }
         if (!curL1 || !curL2) {
-            if (getBallSens() < 800 && intakeState == IntakeState::ALL) IntakeState::FRONT;
+            if (getBallSens() < 1900 && intakeState == IntakeState::ALL) {
+              if(ballSensT > millis()) ballSensT = millis();
+              if(millis() - ballSensT > 200) {
+                intakeState = IntakeState::FRONT;
+              }
+            }
         }
         setIntake(intakeState);
         prevL1 = curL1;
