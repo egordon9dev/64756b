@@ -7,9 +7,10 @@
 extern pros::Motor mtr5, mtr6, mtr7, mtr8, mtr9, mtr10, mtr11, mtr12;
 extern pros::Controller ctlr;
 extern pros::ADIPotentiometer* drfbPot;
-extern pros::ADIAnalogIn* ballSens;
-extern const int drfbMinPos, drfbMaxPos;
+extern pros::ADILineSensor* ballSens;
+extern const int drfbMinPos, drfbMaxPos, drfbMinClaw;
 
+enum class IntakeState { ALL, FRONT, NONE };
 int clamp(int n, int min, int max);
 
 void setDR(int n);
@@ -17,6 +18,8 @@ void setDL(int n);
 void intakeNone();
 void intakeFront();
 void intakeAll();
+void setIntake(IntakeState is);
+int getBallSens();
 
 //----------- DRFB functions ---------
 void setDrfb(int n);

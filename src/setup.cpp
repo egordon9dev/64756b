@@ -15,10 +15,11 @@ pros::Controller ctlr(pros::E_CONTROLLER_MASTER);
 
 pros::ADIPotentiometer* drfbPot;
 pros::ADILineSensor* ballSens;
-const int drfbMinPos = 1395, drfbMaxPos = 3882;
+const int drfbMinPos = 1395, drfbMaxPos = 3882, drfbMinClaw = 1600;
 
 int clamp(int n, int min, int max) { return n < min ? min : (n > max ? max : n); }
 
+//----------- Drive -----------
 void setDR(int n) {
     n = clamp(n, -12000, 12000);
     mtr6.move_voltage(n);
@@ -29,10 +30,20 @@ void setDL(int n) {
     mtr8.move_voltage(-n);
     mtr9.move_voltage(-n);
 }
+//------------ Intake ---------------
 void intakeNone() { mtr5.move_voltage(0); }
 void intakeFront() { mtr5.move_voltage(12000); }
 void intakeAll() { mtr5.move_voltage(-12000); }
-
+void setIntake(IntakeState is) {
+    if (is == IntakeState::NONE) {
+        intakeNone();
+    } else if (is == IntakeState::FRONT) {
+        intakeFront();
+    } else if (is == IntakeState::ALL) {
+        intakeAll();
+    }
+}
+int getBallSens() { return ballSens->get_value(); }
 //----------- DRFB functions ---------
 void setDrfb(int n) {
     clamp(n, -12000, 12000);
