@@ -32,11 +32,12 @@ void opcontrol() {
     int prevT = 0;
     int dt = 0;
     double prevFlywheel = 0, dFlywheel = 0;
-    bool prevDY = false, prevDA = false, prevR1 = false, prevR2 = false, prevL1 = false, prevL2 = false;
-    int prevL2T = 0;
+    bool prevDY = false, prevDA = false, prevR1 = false, prevR2 = false, prevL1 = false, prevL2 = false, prevX = false, prevB = false;
+    int prevL2T = -9999999;
     int clawCtr = 0;
     bool drfbPidRunning = false;
     IntakeState intakeState = IntakeState::NONE;
+    int driveDir = 1;
     while (true) {
         dt = pros::millis() - prevT;
         prevT = pros::millis();
@@ -45,9 +46,16 @@ void opcontrol() {
         pros::lcd::print(2, "ballSens %d", getBallSens());
         pros::lcd::print(3, "claw %d", getClaw());
         pros::lcd::print(4, "flywheel %d", getFlywheel());
+        bool** allClicks = getAllClicks();
+        bool* prevClicks = allClicks[0];
+        bool* curClicks = allClicks[1];
+        bool* dblClicks = allClicks[2];
+        printAllClicks(5, allClicks);
+
+        if (curClicks[ctlrIdxB] && !prevClicks[ctlrIdxB]) { driveDir *= -1; }
         // std::cout << getDrfb() << std::endl;
         // DRIVE
-        int joy[] = {(int)(ctlr.get_analog(ANALOG_RIGHT_X) * 12000.0 / 127.0), (int)(ctlr.get_analog(ANALOG_LEFT_Y) * 12000.0 / 127.0)};
+        int joy[] = {(int)(ctlr.get_analog(ANALOG_RIGHT_X) * 12000.0 / 127.0), (int)(driveDir * ctlr.get_analog(ANALOG_LEFT_Y) * 12000.0 / 127.0)};
         // std::cout << joy[0] << ", " << joy[1] << std::endl;
         dFlywheel = getFlywheel() - prevFlywheel;
         prevFlywheel = getFlywheel();
@@ -58,25 +66,24 @@ void opcontrol() {
         setDR(drv[0] - drv[1]);
 
         // FLYWHEEL
-        if (ctlr.get_digital(DIGITAL_UP)) {
+        if (curClicks[ctlrIdxUp]) {
             pidFlywheel(2.9);
-        } else if (ctlr.get_digital(DIGITAL_RIGHT)) {
+        } else if (curClicks[ctlrIdxRight]) {
             pidFlywheel(2.5);
-        } else if (ctlr.get_digital(DIGITAL_DOWN)) {
+        } else if (curClicks[ctlrIdxDown]) {
             pidFlywheel(0);
         } else {
             pidFlywheel();
         }
 
         // drfb
-        bool curR1 = ctlr.get_digital(DIGITAL_R1), curR2 = ctlr.get_digital(DIGITAL_R2);
         double drfbPos = getDrfb();
         // drfb (low to high)=(1395 to 3882)
-        if (curR1) {
+        if (curClicks[ctlrIdxR1]) {
             drfbPidRunning = true;
             pidDrfb(3200, 999999);
             // 2470
-        } else if (curR2) {
+        } else if (curClicks[ctlrIdxR2]) {
             drfbPidRunning = true;
             pidDrfb(1420, 999999);
         } else {
@@ -88,41 +95,32 @@ void opcontrol() {
         }
 
         // CLAW
-        bool curDY = ctlr.get_digital(DIGITAL_Y);
-        bool curDA = ctlr.get_digital(DIGITAL_A);
-        if ((!prevDY && curDY) || (!prevDA && curDA)) clawCtr++;
-        prevDY = curDY;
-        prevDA = curDA;
+        if (!prevClicks[ctlrIdxX] && curClicks[ctlrIdxX]) clawCtr++;
         int claw180 = 1350;
         double curClaw = getClaw();
-        if (curDY && curClaw > drfbMinClaw) {
+        if (curClicks[ctlrIdxX] && curClaw > drfbMinClaw) {
             pidClaw((int)((curClaw + claw180 * 1.5 + ((curClaw < 0) ? -claw180 : 0)) / claw180) * claw180 - curClaw, 999999, clawCtr);
-        } else if (curDA && curClaw > drfbMinClaw) {
+        } /*else if (curDA && curClaw > drfbMinClaw) {
             pidClaw((int)((curClaw - claw180 * 0.5 + ((curClaw < 0) ? -claw180 : 0)) / claw180) * claw180 - curClaw, 999999, clawCtr);
-        } else if (ctlr.get_digital(DIGITAL_X)) {
-            pidClaw(10, 999999, -777);
-        } else {
+        } */
+        else {
             pidClaw(0, 999999, clawCtr);
         }
-        bool curL1 = ctlr.get_digital(DIGITAL_L1), curL2 = ctlr.get_digital(DIGITAL_L2);
-        if (curL2 && !prevL2) {
-            // double tap
-            if (millis() - prevT < 600) { intakeState = IntakeState::NONE; }
-            prevL2T = millis();
-        }
+
+        if (dblClicks[ctlrIdxL2]) intakeState = IntakeState::NONE;
         // INTAKE
-        if (curL1) {
+        if (curClicks[ctlrIdxL1]) {
             intakeState = IntakeState::ALL;
-        } else if (curL2) {
+        } else if (curClicks[ctlrIdxL2]) {
             intakeState = IntakeState::FRONT;
         }
-        if (!curL1 || !curL2) {
-            if (getBallSens() < 800 && intakeState == IntakeState::ALL) IntakeState::FRONT;
+        if (!curClicks[ctlrIdxL1] || !curClicks[ctlrIdxL2]) {
+            if (getBallSens() < 1800 && intakeState == IntakeState::ALL) intakeState = IntakeState::FRONT;
+        } else {
+            intakeState = IntakeState::ALL;
         }
         setIntake(intakeState);
-        prevL1 = curL1;
-        prevL2 = curL2;
-        if (ctlr.get_digital(DIGITAL_B)) return;
+
         pros::delay(10);
     }
     delete drfbPot;

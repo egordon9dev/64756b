@@ -1,4 +1,5 @@
 #include "setup.hpp"
+#include <string>
 #include "main.h"
 #include "pid.hpp"
 
@@ -15,7 +16,7 @@ pros::Controller ctlr(pros::E_CONTROLLER_MASTER);
 
 pros::ADIPotentiometer* drfbPot;
 pros::ADILineSensor* ballSens;
-const int drfbMinPos = 1395, drfbMaxPos = 3882, drfbMinClaw = 1600;
+const int drfbMinPos = 1395, drfbMaxPos = 3882, drfbPos1 = 2500, drfbPos2 = 3100, drfbMinClaw = 1600;
 
 int clamp(int n, int min, int max) { return n < min ? min : (n > max ? max : n); }
 
@@ -119,4 +120,41 @@ void setup() {
 
     drfbPot = new ADIPotentiometer(2);
     ballSens = new ADILineSensor(8);
+}
+const int ctlrIdxLeft = 0, ctlrIdxUp = 1, ctlrIdxRight = 2, ctlrIdxDown = 3, ctlrIdxY = 4, ctlrIdxX = 5, ctlrIdxA = 6, ctlrIdxB = 7, ctlrIdxL1 = 8, ctlrIdxL2 = 9, ctlrIdxR1 = 10, ctlrIdxR2 = 11;
+std::string clickIdxNames[] = {"Left", "Up", "Right", "Down", "Y", "X", "A", "B", "L1", "L2", "R1", "R2"};
+pros::controller_digital_e_t clickIdxIds[] = {DIGITAL_LEFT, DIGITAL_UP, DIGITAL_RIGHT, DIGITAL_DOWN, DIGITAL_Y, DIGITAL_X, DIGITAL_A, DIGITAL_B, DIGITAL_L1, DIGITAL_L2, DIGITAL_R1, DIGITAL_R2};
+bool** getAllClicks() {
+    static bool** allClicks;
+    static bool curClicks[12];
+    for (int i = 0; i < 12; i++) curClicks[i] = ctlr.get_digital(clickIdxIds[i]);
+    static bool prevClicks[] = {false, false, false, false, false, false, false, false, false, false, false, false};
+    static int prevTimes[] = {-9999999, -9999999, -9999999, -9999999, -9999999, -9999999, -9999999, -9999999, -9999999, -9999999, -9999999, -9999999};
+    static bool dblClicks[] = {false, false, false, false, false, false, false, false, false, false, false, false};
+    for (int i = 0; i < 12; i++) {
+        if (curClicks[i] && !prevClicks[i]) {
+            // double tap
+            dblClicks[i] = millis() - prevTimes[i] < 1500;
+            prevTimes[i] = millis();
+        }
+        prevClicks[i] = curClicks[i];
+    };
+    allClicks[0] = prevClicks;
+    allClicks[1] = curClicks;
+    allClicks[2] = dblClicks;
+    return allClicks;
+}
+void printAllClicks(int line, bool** allClicks) {
+    std::string line1 = "prevClicks: ";
+    for (int i = 0; i < 12; i++) { line1 += (allClicks[0][i] ? (clickIdxNames[i] + ", ") : ""); }
+    line1 = line1.substr(0, line1.size() - 2);
+    std::string line2 = "curClicks: ";
+    for (int i = 0; i < 12; i++) { line2 += (allClicks[1][i] ? (clickIdxNames[i] + ", ") : ""); }
+    line2 = line2.substr(0, line2.size() - 2);
+    std::string line3 = "dblClicks: ";
+    for (int i = 0; i < 12; i++) { line3 += (allClicks[2][i] ? (clickIdxNames[i] + ", ") : ""); }
+    line3 = line3.substr(0, line3.size() - 2);
+    pros::lcd::print(line, line1.c_str());
+    pros::lcd::print(line + 1, line2.c_str());
+    pros::lcd::print(line + 2, line3.c_str());
 }
