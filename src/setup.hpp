@@ -10,6 +10,7 @@ extern pros::ADIPotentiometer* drfbPot;
 extern pros::ADILineSensor* ballSens;
 extern const int drfbMinPos, drfbMaxPos, drfbPos1, drfbPos2, drfbMinClaw;
 extern const int ctlrIdxLeft, ctlrIdxUp, ctlrIdxRight, ctlrIdxDown, ctlrIdxY, ctlrIdxX, ctlrIdxA, ctlrIdxB, ctlrIdxL1, ctlrIdxL2, ctlrIdxR1, ctlrIdxR2;
+extern const int dblClickTime;
 enum class IntakeState { ALL, FRONT, NONE };
 int clamp(int n, int min, int max);
 
@@ -31,7 +32,7 @@ int getBallSens();
 
 //----------- DRFB functions ---------
 void setDrfb(int n);
-double getDrfb();
+int getDrfb();
 bool pidDrfb(double pos, int wait);
 void pidDrfb();
 //---------- Claw functions --------

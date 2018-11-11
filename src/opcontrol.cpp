@@ -38,6 +38,7 @@ void opcontrol() {
     bool drfbPidRunning = false;
     IntakeState intakeState = IntakeState::NONE;
     int driveDir = 1;
+    std::cout << "-1" << std::endl;
     while (true) {
         dt = pros::millis() - prevT;
         prevT = pros::millis();
@@ -47,9 +48,12 @@ void opcontrol() {
         pros::lcd::print(3, "claw %d", getClaw());
         pros::lcd::print(4, "flywheel %d", getFlywheel());
         bool** allClicks = getAllClicks();
-        bool* prevClicks = allClicks[0];
-        bool* curClicks = allClicks[1];
-        bool* dblClicks = allClicks[2];
+        bool prevClicks[12], curClicks[12], dblClicks[12];
+        for (int i = 0; i < 12; i++) {
+            prevClicks[i] = allClicks[0][i];
+            curClicks[i] = allClicks[1][i];
+            dblClicks[i] = allClicks[2][i];
+        }
         printAllClicks(5, allClicks);
 
         if (curClicks[ctlrIdxB] && !prevClicks[ctlrIdxB]) { driveDir *= -1; }
@@ -78,14 +82,16 @@ void opcontrol() {
 
         // drfb
         double drfbPos = getDrfb();
-        // drfb (low to high)=(1395 to 3882)
-        if (curClicks[ctlrIdxR1]) {
+        if (dblClicks[ctlrIdxR1]) {
             drfbPidRunning = true;
-            pidDrfb(3200, 999999);
+            pidDrfb(drfbPos2, 999999);
+        } else if (curClicks[ctlrIdxR1]) {
+            drfbPidRunning = true;
+            pidDrfb(drfbPos1, 999999);
             // 2470
         } else if (curClicks[ctlrIdxR2]) {
             drfbPidRunning = true;
-            pidDrfb(1420, 999999);
+            pidDrfb(1390, 999999);
         } else {
             if (drfbPidRunning) {
                 pidDrfb();
@@ -100,7 +106,8 @@ void opcontrol() {
         double curClaw = getClaw();
         if (curClicks[ctlrIdxX] && curClaw > drfbMinClaw) {
             pidClaw((int)((curClaw + claw180 * 1.5 + ((curClaw < 0) ? -claw180 : 0)) / claw180) * claw180 - curClaw, 999999, clawCtr);
-        } /*else if (curDA && curClaw > drfbMinClaw) {
+        }
+        /*else if (curDA && curClaw > drfbMinClaw) {
             pidClaw((int)((curClaw - claw180 * 0.5 + ((curClaw < 0) ? -claw180 : 0)) / claw180) * claw180 - curClaw, 999999, clawCtr);
         } */
         else {
@@ -121,6 +128,10 @@ void opcontrol() {
         }
         setIntake(intakeState);
 
+        delete[] allClicks[0];
+        delete[] allClicks[1];
+        delete[] allClicks[2];
+        delete[] allClicks;
         pros::delay(10);
     }
     delete drfbPot;

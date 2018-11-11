@@ -16,7 +16,10 @@ pros::Controller ctlr(pros::E_CONTROLLER_MASTER);
 
 pros::ADIPotentiometer* drfbPot;
 pros::ADILineSensor* ballSens;
-const int drfbMinPos = 1395, drfbMaxPos = 3882, drfbPos1 = 2500, drfbPos2 = 3100, drfbMinClaw = 1600;
+
+//----------- Constants ----------------
+const int drfbMinPos = 1395, drfbMaxPos = 3882, drfbPos1 = 2850, drfbPos2 = 3600, drfbMinClaw = 1600;
+const int dblClickTime = 450;
 
 int clamp(int n, int min, int max) { return n < min ? min : (n > max ? max : n); }
 
@@ -51,7 +54,7 @@ void setDrfb(int n) {
     n = drfbSlew.update(n);
     mtr12.move_voltage(-n);
 }
-double getDrfb() { return 4095 - drfbPot->get_value(); }
+int getDrfb() { return 4095 - drfbPot->get_value(); }
 bool pidDrfb(double pos, int wait) {
     drfbPid.target = pos;
     drfbPid.sensVal = getDrfb();
@@ -122,26 +125,28 @@ void setup() {
     ballSens = new ADILineSensor(8);
 }
 const int ctlrIdxLeft = 0, ctlrIdxUp = 1, ctlrIdxRight = 2, ctlrIdxDown = 3, ctlrIdxY = 4, ctlrIdxX = 5, ctlrIdxA = 6, ctlrIdxB = 7, ctlrIdxL1 = 8, ctlrIdxL2 = 9, ctlrIdxR1 = 10, ctlrIdxR2 = 11;
-std::string clickIdxNames[] = {"Left", "Up", "Right", "Down", "Y", "X", "A", "B", "L1", "L2", "R1", "R2"};
-pros::controller_digital_e_t clickIdxIds[] = {DIGITAL_LEFT, DIGITAL_UP, DIGITAL_RIGHT, DIGITAL_DOWN, DIGITAL_Y, DIGITAL_X, DIGITAL_A, DIGITAL_B, DIGITAL_L1, DIGITAL_L2, DIGITAL_R1, DIGITAL_R2};
+const std::string clickIdxNames[] = {"Left", "Up", "Right", "Down", "Y", "X", "A", "B", "L1", "L2", "R1", "R2"};
+const pros::controller_digital_e_t clickIdxIds[] = {DIGITAL_LEFT, DIGITAL_UP, DIGITAL_RIGHT, DIGITAL_DOWN, DIGITAL_Y, DIGITAL_X, DIGITAL_A, DIGITAL_B, DIGITAL_L1, DIGITAL_L2, DIGITAL_R1, DIGITAL_R2};
 bool** getAllClicks() {
-    static bool** allClicks;
-    static bool curClicks[12];
-    for (int i = 0; i < 12; i++) curClicks[i] = ctlr.get_digital(clickIdxIds[i]);
     static bool prevClicks[] = {false, false, false, false, false, false, false, false, false, false, false, false};
     static int prevTimes[] = {-9999999, -9999999, -9999999, -9999999, -9999999, -9999999, -9999999, -9999999, -9999999, -9999999, -9999999, -9999999};
-    static bool dblClicks[] = {false, false, false, false, false, false, false, false, false, false, false, false};
+    bool curClicks[12];
+    static bool dblClicks[12] = {false, false, false, false, false, false, false, false, false, false, false, false};
+    bool** allClicks = new bool*[3];
+    for (int i = 0; i < 3; i++) { allClicks[i] = new bool[12]; }
     for (int i = 0; i < 12; i++) {
+        curClicks[i] = ctlr.get_digital(clickIdxIds[i]);
+        if (!curClicks[i]) dblClicks[i] = false;
         if (curClicks[i] && !prevClicks[i]) {
             // double tap
-            dblClicks[i] = millis() - prevTimes[i] < 1500;
+            if (millis() - prevTimes[i] < dblClickTime) dblClicks[i] = true;
             prevTimes[i] = millis();
         }
         prevClicks[i] = curClicks[i];
-    };
-    allClicks[0] = prevClicks;
-    allClicks[1] = curClicks;
-    allClicks[2] = dblClicks;
+        allClicks[0][i] = prevClicks[i];
+        allClicks[1][i] = curClicks[i];
+        allClicks[2][i] = dblClicks[i];
+    }
     return allClicks;
 }
 void printAllClicks(int line, bool** allClicks) {
