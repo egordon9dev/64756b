@@ -8,9 +8,11 @@ extern pros::Motor mtr5, mtr6, mtr7, mtr8, mtr9, mtr10, mtr11, mtr12;
 extern pros::Controller ctlr;
 extern pros::ADIPotentiometer* drfbPot;
 extern pros::ADILineSensor* ballSens;
-extern const int drfbMinPos, drfbMaxPos, drfbPos1, drfbPos2, drfbMinClaw;
+extern const int drfbMinPos, drfbMaxPos, drfbPos0, drfbPos1, drfbPos2, drfbMinClaw;
 extern const int ctlrIdxLeft, ctlrIdxUp, ctlrIdxRight, ctlrIdxDown, ctlrIdxY, ctlrIdxX, ctlrIdxA, ctlrIdxB, ctlrIdxL1, ctlrIdxL2, ctlrIdxR1, ctlrIdxR2;
 extern const int dblClickTime;
+extern const double PI;
+extern const double ticksPerInch;
 enum class IntakeState { ALL, FRONT, NONE };
 int clamp(int n, int min, int max);
 
@@ -18,10 +20,13 @@ int clamp(int n, int min, int max);
 // returns prevClicks, curClicks, DblClicks
 bool** getAllClicks();
 void printAllClicks(int line, bool** allClicks);
+void printPidValues();
 
 // -------- Drive --------
 void setDR(int n);
 void setDL(int n);
+double getDR();
+double getDL();
 
 //----------- Intake ------
 void intakeNone();

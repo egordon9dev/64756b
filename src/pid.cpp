@@ -1,8 +1,10 @@
 #include "pid.hpp"
 #include "main.h"
 #include "setup.hpp"
+
 Pid_t flywheelPid, clawPid, drfbPid;
 Slew_t flywheelSlew, drfbSlew;
+Odometry_t odometry(/*6.46875*/ 6.982698);
 Slew_t::Slew_t() {
     slewRate = 100.0;
     output = 0;
@@ -12,8 +14,27 @@ Pid_t::Pid_t() {
     doneTime = INT_MAX;
     DONE_ZONE = 10;
     maxIntegral = 9999999;
-    iActiveZone = target = prevSensVal = sensVal = prevErr = errTot = unwind = deriv = kp = ki = kd = 0.0;
+    dInactiveZone = iActiveZone = target = prevSensVal = sensVal = prevErr = errTot = unwind = deriv = kp = ki = kd = 0.0;
     prevTime = prevDUpdateTime = 0;
+}
+Odometry_t::Odometry_t(double L) {
+    this->L = L;
+    this->a = PI / 2;
+    this->x = this->y = this->prevDL = this->prevDR = 0.0;
+}
+double Odometry_t::getX() { return x; }
+double Odometry_t::getY() { return y; }
+double Odometry_t::getA() { return a; }
+void Odometry_t::update() {
+    double curDL = getDL(), curDR = getDR();
+    double deltaDL = (curDL - prevDL) / ticksPerInch, deltaDR = (curDR - prevDR) / ticksPerInch;
+    double deltaDC = (deltaDL + deltaDR) / 2.0;
+    double deltaA = (deltaDR - deltaDL) / (2.0 * L);
+    x += deltaDC * cos(a + deltaA / 2);
+    y += deltaDC * sin(a + deltaA / 2);
+    a += deltaA;
+    prevDL = curDL;
+    prevDR = curDR;
 }
 
 /*
@@ -54,6 +75,7 @@ double Pid_t::update() {
         deriv = d;  // save new derivative
         prevSensVal = sensVal;
     }
+    if (fabs(err) < dInactiveZone) d = 0;
     // INTEGRAL
     errTot += err * dt;
     if (fabs(err) > iActiveZone) errTot = 0;

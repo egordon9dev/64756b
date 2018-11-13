@@ -25,7 +25,20 @@ A, Y        flip  cap
  * operator control task will be stopped. Re-enabling the robot will restart the
  * task, not resume it from where it left off.
  */
-
+void doTests() {
+    while (0) {
+        pidFlywheel(2.5);
+        printPidValues();
+        delay(10);
+    }
+    while (1) {
+        /*odometry.update();
+        double x = odometry.getX(), y = odometry.getY(), a = odometry.getA();*/
+        pros::lcd::print(0, "DL %f", getDL());
+        pros::lcd::print(1, "DR %f", getDR());
+        delay(10);
+    }
+}
 void opcontrol() {
     setup();
     double drv[] = {0, 0};
@@ -34,19 +47,25 @@ void opcontrol() {
     double prevFlywheel = 0, dFlywheel = 0;
     bool prevDY = false, prevDA = false, prevR1 = false, prevR2 = false, prevL1 = false, prevL2 = false, prevX = false, prevB = false;
     int prevL2T = -9999999;
+    int tDrfbOff = 0;
     int clawCtr = 0;
     bool drfbPidRunning = false;
     IntakeState intakeState = IntakeState::NONE;
     int driveDir = 1;
-    std::cout << "-1" << std::endl;
+    if (0) doTests();
     while (true) {
         dt = pros::millis() - prevT;
         prevT = pros::millis();
-        pros::lcd::print(0, "%.2lfv      %d%%", pros::battery::get_voltage() / 1000.0, (int)pros::battery::get_capacity());
-        pros::lcd::print(1, "drfb %d", getDrfb());
-        pros::lcd::print(2, "ballSens %d", getBallSens());
-        pros::lcd::print(3, "claw %d", getClaw());
-        pros::lcd::print(4, "flywheel %d", getFlywheel());
+        // pros::lcd::print(0, "%.2lfv      %d%%", pros::battery::get_voltage() / 1000.0, (int)pros::battery::get_capacity());
+        // pros::lcd::print(1, "drfb %d", getDrfb());
+        // pros::lcd::print(2, "ballSens %d", getBallSens());
+        // pros::lcd::print(3, "claw %d", getClaw());
+        // pros::lcd::print(4, "flywheel %d", getFlywheel());
+        odometry.update();
+
+        pros::lcd::print(0, "x %f", odometry.getX());
+        pros::lcd::print(1, "y %f", odometry.getY());
+        pros::lcd::print(2, "a %f", odometry.getA());
         bool** allClicks = getAllClicks();
         bool prevClicks[12], curClicks[12], dblClicks[12];
         for (int i = 0; i < 12; i++) {
@@ -54,7 +73,7 @@ void opcontrol() {
             curClicks[i] = allClicks[1][i];
             dblClicks[i] = allClicks[2][i];
         }
-        printAllClicks(5, allClicks);
+        // printAllClicks(5, allClicks);
 
         if (curClicks[ctlrIdxB] && !prevClicks[ctlrIdxB]) { driveDir *= -1; }
         // std::cout << getDrfb() << std::endl;
@@ -83,22 +102,27 @@ void opcontrol() {
         // drfb
         double drfbPos = getDrfb();
         if (dblClicks[ctlrIdxR1]) {
-            drfbPidRunning = true;
+            drfbPidRunning = false;
+            tDrfbOff = millis();
             pidDrfb(drfbPos2, 999999);
         } else if (curClicks[ctlrIdxR1]) {
-            drfbPidRunning = true;
+            drfbPidRunning = false;
+            tDrfbOff = millis();
             pidDrfb(drfbPos1, 999999);
             // 2470
         } else if (curClicks[ctlrIdxR2]) {
-            drfbPidRunning = true;
-            pidDrfb(1390, 999999);
-        } else {
-            if (drfbPidRunning) {
-                pidDrfb();
-            } else {
-                setDrfb(0);
+            drfbPidRunning = false;
+            tDrfbOff = millis();
+            pidDrfb(drfbPos0, 999999);
+        } else if ((int)millis() - tDrfbOff > 300) {
+            if (!drfbPidRunning) {
+                drfbPidRunning = true;
+                drfbPid.target = getDrfb();
             }
+        } else if (!drfbPidRunning) {
+            setDrfb(0);
         }
+        if (drfbPidRunning) pidDrfb();
 
         // CLAW
         if (!prevClicks[ctlrIdxX] && curClicks[ctlrIdxX]) clawCtr++;

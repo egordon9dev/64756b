@@ -18,9 +18,10 @@ pros::ADIPotentiometer* drfbPot;
 pros::ADILineSensor* ballSens;
 
 //----------- Constants ----------------
-const int drfbMinPos = 1395, drfbMaxPos = 3882, drfbPos1 = 2850, drfbPos2 = 3600, drfbMinClaw = 1600;
+const int drfbMinPos = 1395, drfbMaxPos = 3882, drfbPos0 = 1390, drfbPos1 = 2850, drfbPos2 = 3600, drfbMinClaw = 1600;
 const int dblClickTime = 450;
-
+const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
+const double PI = 3.14159265358979323846;
 int clamp(int n, int min, int max) { return n < min ? min : (n > max ? max : n); }
 
 //----------- Drive -----------
@@ -34,6 +35,9 @@ void setDL(int n) {
     mtr8.move_voltage(-n);
     mtr9.move_voltage(-n);
 }
+double getDL() { return (-mtr8.get_position() - mtr9.get_position()) * 0.5; }
+double getDR() { return (mtr6.get_position() + mtr7.get_position()) * 0.5; }
+
 //------------ Intake ---------------
 void intakeNone() { mtr5.move_voltage(0); }
 void intakeFront() { mtr5.move_voltage(12000); }
@@ -55,12 +59,12 @@ void setDrfb(int n) {
     mtr12.move_voltage(-n);
 }
 int getDrfb() { return 4095 - drfbPot->get_value(); }
+int getDrfbVoltage() { return mtr12.get_voltage(); }
 bool pidDrfb(double pos, int wait) {
     drfbPid.target = pos;
     drfbPid.sensVal = getDrfb();
     drfbPid.sensVal = clamp(drfbPid.sensVal, drfbMinPos, drfbMaxPos);
     int out = drfbPid.update();
-    std::cout << "drfb " << out << " " << drfbPid.sensVal << "/" << drfbPid.target << std::endl;
     setDrfb(out);
     if (drfbPid.doneTime + wait < millis()) return true;
 }
@@ -92,6 +96,7 @@ void setFlywheel(int n) {
     mtr10.move_voltage(n);
 }
 double getFlywheel() { return mtr10.get_position(); }
+int getFlywheelVoltage() { return mtr10.get_voltage(); }
 bool pidFlywheel(double speed) {
     flywheelPid.target = speed;
     static double prevFlywheelPos = 0;
@@ -110,20 +115,7 @@ bool pidFlywheel(double speed) {
     return fabs(flywheelPid.sensVal - flywheelPid.target) < flywheelPid.DONE_ZONE;
 }
 bool pidFlywheel() { return pidFlywheel(flywheelPid.target); }
-void setup() {
-    flywheelSlew.slewRate = 3;
-    flywheelPid.kp = 10.0;
-    flywheelPid.DONE_ZONE = 0.2;
-
-    clawPid.kp = 50.0;
-
-    drfbPid.kp = 20.0;
-    drfbPid.ki = 0.1;
-    drfbPid.kd = 2;
-
-    drfbPot = new ADIPotentiometer(2);
-    ballSens = new ADILineSensor(8);
-}
+//--------------------- Misc -----------------
 const int ctlrIdxLeft = 0, ctlrIdxUp = 1, ctlrIdxRight = 2, ctlrIdxDown = 3, ctlrIdxY = 4, ctlrIdxX = 5, ctlrIdxA = 6, ctlrIdxB = 7, ctlrIdxL1 = 8, ctlrIdxL2 = 9, ctlrIdxR1 = 10, ctlrIdxR2 = 11;
 const std::string clickIdxNames[] = {"Left", "Up", "Right", "Down", "Y", "X", "A", "B", "L1", "L2", "R1", "R2"};
 const pros::controller_digital_e_t clickIdxIds[] = {DIGITAL_LEFT, DIGITAL_UP, DIGITAL_RIGHT, DIGITAL_DOWN, DIGITAL_Y, DIGITAL_X, DIGITAL_A, DIGITAL_B, DIGITAL_L1, DIGITAL_L2, DIGITAL_R1, DIGITAL_R2};
@@ -162,4 +154,27 @@ void printAllClicks(int line, bool** allClicks) {
     pros::lcd::print(line, line1.c_str());
     pros::lcd::print(line + 1, line2.c_str());
     pros::lcd::print(line + 2, line3.c_str());
+}
+
+void printPidValues() {
+    printf("%.1f drfb%2d %4f/%4f fly%2d %1.1f/%1.1f\n", millis() / 1000.0, (int)(getDrfbVoltage() / 1000 + 0.5), drfbPid.sensVal, drfbPid.target, getFlywheelVoltage() / 1000, flywheelPid.sensVal, flywheelPid.target);
+    std::cout << std::endl;
+}
+
+void setup() {
+    flywheelSlew.slewRate = 9999;  // 60;
+    flywheelPid.kp = 130.0;
+    flywheelPid.kd = 100000.0;
+    flywheelPid.dInactiveZone = 0.01;
+
+    flywheelPid.DONE_ZONE = 0.2;
+
+    clawPid.kp = 50.0;
+
+    drfbPid.kp = 20.0;
+    drfbPid.ki = 0.1;
+    drfbPid.kd = 2;
+
+    drfbPot = new ADIPotentiometer(2);
+    ballSens = new ADILineSensor(8);
 }
