@@ -69,7 +69,7 @@ void setDrfb(int n) {
     prevDrfb = getDrfb();
     bool stall = millis() - t0 > 50 && ((n < 0 && vel > -0.1) || (n > 0 && vel < 0.1));
     int maxStall = stall ? 3000 : 12000;
-    if ((getDrfb() < drfbMinPos + 300 || getDrfb() > drfbMaxPos - 300) && stall > 4500) stall = 4500;
+    if ((getDrfb() < drfbMinPos + 300 || getDrfb() > drfbMaxPos - 300) && maxStall > 4500) maxStall = 4500;
     // n += (getDrfb() - drfbMinPos) / 3.0 - 300;
     n = clamp(n, -maxStall, maxStall);
     n = drfbSlew.update(n);
