@@ -58,8 +58,7 @@ int getBallSens() { return ballSens->get_value(); }
 
 void setDrfb(int n) {
     static int prevN = -99999, t0 = 0;
-    static int prevDrfb = getDrfb(), prevT = millis();
-    drfbPid.update();
+    static int prevDrfb = drfbMinPos, prevT = 0;
     if (abs(n - prevN) > 1000) {
         t0 = millis();
         prevN = n;

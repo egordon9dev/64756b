@@ -40,6 +40,7 @@ void doTests() {
     }
 }
 void opcontrol() {
+    setupAuton();
     setupOpCtrl();
     double drv[] = {0, 0};
     int prevT = 0;
@@ -64,9 +65,9 @@ void opcontrol() {
 
         pros::lcd::print(0, "x %f", odometry.getX());
         pros::lcd::print(1, "y %f", odometry.getY());
-        pros::lcd::print(2, "a %f", odometry.getA());
-        pros::lcd::print(3, "drfb %d", getDrfb());
-        printPidValues();
+        pros::lcd::print(2, "a %f", odometry.getA()); /*
+         pros::lcd::print(3, "drfb %d", getDrfb());
+         printPidValues();*/
         bool** allClicks = getAllClicks();
         bool prevClicks[12], curClicks[12], dblClicks[12];
         for (int i = 0; i < 12; i++) {
@@ -74,7 +75,7 @@ void opcontrol() {
             curClicks[i] = allClicks[1][i];
             dblClicks[i] = allClicks[2][i];
         }
-        printAllClicks(5, allClicks);
+        // printAllClicks(5, allClicks);
 
         if (curClicks[ctlrIdxB] && !prevClicks[ctlrIdxB]) { driveDir *= -1; }
         // DRIVE
