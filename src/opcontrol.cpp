@@ -40,7 +40,7 @@ void doTests() {
     }
 }
 void opcontrol() {
-    setup();
+    setupOpCtrl();
     double drv[] = {0, 0};
     int prevT = 0;
     int dt = 0;
@@ -48,7 +48,6 @@ void opcontrol() {
     bool prevDY = false, prevDA = false, prevR1 = false, prevR2 = false, prevL1 = false, prevL2 = false, prevX = false, prevB = false;
     int prevL2T = -9999999;
     int tDrfbOff = 0;
-    int clawCtr = 0;
     bool drfbPidRunning = false;
     IntakeState intakeState = IntakeState::NONE;
     int driveDir = 1;
@@ -66,6 +65,8 @@ void opcontrol() {
         pros::lcd::print(0, "x %f", odometry.getX());
         pros::lcd::print(1, "y %f", odometry.getY());
         pros::lcd::print(2, "a %f", odometry.getA());
+        pros::lcd::print(3, "drfb %d", getDrfb());
+        printPidValues();
         bool** allClicks = getAllClicks();
         bool prevClicks[12], curClicks[12], dblClicks[12];
         for (int i = 0; i < 12; i++) {
@@ -73,26 +74,21 @@ void opcontrol() {
             curClicks[i] = allClicks[1][i];
             dblClicks[i] = allClicks[2][i];
         }
-        // printAllClicks(5, allClicks);
+        printAllClicks(5, allClicks);
 
         if (curClicks[ctlrIdxB] && !prevClicks[ctlrIdxB]) { driveDir *= -1; }
-        // std::cout << getDrfb() << std::endl;
         // DRIVE
         int joy[] = {(int)(ctlr.get_analog(ANALOG_RIGHT_X) * 12000.0 / 127.0), (int)(driveDir * ctlr.get_analog(ANALOG_LEFT_Y) * 12000.0 / 127.0)};
-        // std::cout << joy[0] << ", " << joy[1] << std::endl;
         dFlywheel = getFlywheel() - prevFlywheel;
         prevFlywheel = getFlywheel();
         if (abs(joy[0]) < 10) joy[0] = 0;
         if (abs(joy[1]) < 10) joy[1] = 0;
-        double drv[] = {0.1 * joy[1] + 0.9 * drv[0], joy[0] * 0.1 + 0.9 * drv[1]};
-        setDL(drv[0] + drv[1]);
-        setDR(drv[0] - drv[1]);
+        setDL(joy[1] + joy[0]);
+        setDR(joy[1] - joy[0]);
 
         // FLYWHEEL
         if (curClicks[ctlrIdxUp]) {
             pidFlywheel(2.9);
-        } else if (curClicks[ctlrIdxRight]) {
-            pidFlywheel(2.5);
         } else if (curClicks[ctlrIdxDown]) {
             pidFlywheel(0);
         } else {
@@ -101,23 +97,27 @@ void opcontrol() {
 
         // drfb
         double drfbPos = getDrfb();
-        if (dblClicks[ctlrIdxR1]) {
+        if (curClicks[ctlrIdxR1]) {
             drfbPidRunning = false;
             tDrfbOff = millis();
-            pidDrfb(drfbPos2, 999999);
-        } else if (curClicks[ctlrIdxR1]) {
-            drfbPidRunning = false;
-            tDrfbOff = millis();
-            pidDrfb(drfbPos1, 999999);
-            // 2470
+            setDrfb(12000);
         } else if (curClicks[ctlrIdxR2]) {
             drfbPidRunning = false;
             tDrfbOff = millis();
-            pidDrfb(drfbPos0, 999999);
-        } else if ((int)millis() - tDrfbOff > 300) {
+            setDrfb(-12000);
+        } else if (curClicks[ctlrIdxY]) {
+            drfbPidRunning = true;
+            drfbPid.target = drfbPos1;
+            setDrfbParams(true);
+        } else if (curClicks[ctlrIdxA]) {
+            drfbPidRunning = true;
+            drfbPid.target = drfbPos2;
+            setDrfbParams(true);
+        } else if ((int)millis() - tDrfbOff > 130 && millis() > 300) {
             if (!drfbPidRunning) {
                 drfbPidRunning = true;
                 drfbPid.target = getDrfb();
+                setDrfbParams(false);
             }
         } else if (!drfbPidRunning) {
             setDrfb(0);
@@ -125,31 +125,23 @@ void opcontrol() {
         if (drfbPidRunning) pidDrfb();
 
         // CLAW
-        if (!prevClicks[ctlrIdxX] && curClicks[ctlrIdxX]) clawCtr++;
         int claw180 = 1350;
         double curClaw = getClaw();
-        if (curClicks[ctlrIdxX] && curClaw > drfbMinClaw) {
-            pidClaw((int)((curClaw + claw180 * 1.5 + ((curClaw < 0) ? -claw180 : 0)) / claw180) * claw180 - curClaw, 999999, clawCtr);
-        }
-        /*else if (curDA && curClaw > drfbMinClaw) {
-            pidClaw((int)((curClaw - claw180 * 0.5 + ((curClaw < 0) ? -claw180 : 0)) / claw180) * claw180 - curClaw, 999999, clawCtr);
-        } */
-        else {
-            pidClaw(0, 999999, clawCtr);
-        }
+        if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX] && getDrfb() > drfbMinClaw) { clawPid.target += claw180; }
+        pidClaw(clawPid.target, 999999);
 
-        if (dblClicks[ctlrIdxL2]) intakeState = IntakeState::NONE;
         // INTAKE
-        if (curClicks[ctlrIdxL1]) {
+        if (curClicks[ctlrIdxL1] && curClicks[ctlrIdxL2]) {
             intakeState = IntakeState::ALL;
-        } else if (curClicks[ctlrIdxL2]) {
-            intakeState = IntakeState::FRONT;
-        }
-        if (!curClicks[ctlrIdxL1] || !curClicks[ctlrIdxL2]) {
-            if (getBallSens() < 1800 && intakeState == IntakeState::ALL) intakeState = IntakeState::FRONT;
         } else {
-            intakeState = IntakeState::ALL;
+            if (dblClicks[ctlrIdxL2]) {
+                intakeState = IntakeState::NONE;
+            } else if (curClicks[ctlrIdxL2]) {
+                intakeState = IntakeState::ALL;
+            }
+            if (getBallSens() < 1800 && intakeState == IntakeState::ALL) { intakeState = IntakeState::FRONT; }
         }
+        if (fabs(flywheelPid.target - flywheelPid.sensVal) > 0.5 && intakeState == IntakeState::ALL) { intakeState = IntakeState::FRONT; }
         setIntake(intakeState);
 
         delete[] allClicks[0];

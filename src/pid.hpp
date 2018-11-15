@@ -29,7 +29,7 @@ class Odometry_t {
 };
 
 extern Pid_t flywheelPid, clawPid, drfbPid;
-extern Slew_t flywheelSlew, drfbSlew;
+extern Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew;
 extern Odometry_t odometry;
 
 #endif

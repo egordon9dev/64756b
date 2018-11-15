@@ -3,8 +3,8 @@
 #include "setup.hpp"
 
 Pid_t flywheelPid, clawPid, drfbPid;
-Slew_t flywheelSlew, drfbSlew;
-Odometry_t odometry(/*6.46875*/ 6.982698);
+Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew;
+Odometry_t odometry(6.982698);
 Slew_t::Slew_t() {
     slewRate = 100.0;
     output = 0;

@@ -37,18 +37,19 @@ int getBallSens();
 
 //----------- DRFB functions ---------
 void setDrfb(int n);
+void setDrfbParams(bool auton);
 int getDrfb();
 bool pidDrfb(double pos, int wait);
 void pidDrfb();
 //---------- Claw functions --------
 void setClaw(int n);
 double getClaw();
-bool pidClawAbsolute(double a, int wait);
-bool pidClaw(double a, int wait, int id);
+bool pidClaw(double a, int wait);
 //--------- Flywheel functions --------
 void setFlywheel(int n);
 double getFlywheel();
 bool pidFlywheel(double speed);
 bool pidFlywheel();
-void setup();
+void setupAuton();
+void setupOpCtrl();
 #endif
