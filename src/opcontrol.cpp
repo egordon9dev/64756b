@@ -31,11 +31,13 @@ void doTests() {
         printPidValues();
         delay(10);
     }
+    Point p1(20, 20);
     while (1) {
         /*odometry.update();
         double x = odometry.getX(), y = odometry.getY(), a = odometry.getA();*/
         pros::lcd::print(0, "DL %f", getDL());
         pros::lcd::print(1, "DR %f", getDR());
+        pidDrive(p1, 999999);
         delay(10);
     }
 }
@@ -52,7 +54,7 @@ void opcontrol() {
     bool drfbPidRunning = false;
     IntakeState intakeState = IntakeState::NONE;
     int driveDir = 1;
-    if (0) doTests();
+    if (1) doTests();
     while (true) {
         dt = pros::millis() - prevT;
         prevT = pros::millis();

@@ -200,6 +200,9 @@ void setupAuton() {
     DLPid.kp = 50;
     DRPid.kp = 50;
 
+    drivePid.kp = 8000;
+    turnPid.kp = 10000;
+
     drfbPot = new ADIPotentiometer(2);
     ballSens = new ADILineSensor(8);
 }
@@ -219,7 +222,17 @@ bool pidDrive(Point target, unsigned long wait) {
             setDL(0);
             setDR(0);
         } else {
-            double angle = acos((dir * targetDir) / (dir.mag() * targetDir.mag()));
+            double aErr = acos((dir * targetDir) / (dir.mag() * targetDir.mag()));
+            if (dir < targetDir) aErr *= -1;
+            double curA = odometry.getA();
+            turnPid.target = curA - aErr;
+            turnPid.sensVal = curA;
+            int turnPwr = clamp(turnPid.update(), -8000, 8000);
+            drivePid.target = 0.0;
+            drivePid.sensVal = targetDir.mag();
+            int drivePwr = clamp(drivePid.update(), -8000, 8000);
+            setDL(drivePwr - turnPwr);
+            setDR(drivePwr + turnPwr);
         }
         if (DLPid.doneTime + wait < millis() && DRPid.doneTime + wait < millis()) returnVal = true;
     }

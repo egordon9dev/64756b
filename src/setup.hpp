@@ -27,6 +27,7 @@ void setDR(int n);
 void setDL(int n);
 double getDR();
 double getDL();
+bool pidDrive(Point target, int wait);
 
 //----------- Intake ------
 void intakeNone();

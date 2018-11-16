@@ -35,10 +35,13 @@ class Point {
     friend Point operator+(const Point& p1, const Point& p2);
     friend Point operator-(const Point& p1, const Point& p2);
     friend double operator*(const Point& p1, const Point& p2);
-    double mag();
+    friend bool operator>(const Point& p1, const Point& p2) {}
+    friend bool operator<(const Point& p1, const Point& p2) {}
+    double mag() const;
+    Point rotate(int dir) const;
 };
 
-extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, DLTurnPid, DRTurnPid;
+extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, DLTurnPid, DRTurnPid, drivePid, turnPid;
 extern Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew;
 extern Odometry_t odometry;
 
