@@ -56,7 +56,7 @@ void opcontrol() {
     while (true) {
         dt = pros::millis() - prevT;
         prevT = pros::millis();
-        // pros::lcd::print(0, "%.2lfv      %d%%", pros::battery::get_voltage() / 1000.0, (int)pros::battery::get_capacity());
+        pros::lcd::print(7, "%.2lfv      %d%%", pros::battery::get_voltage() / 1000.0, (int)pros::battery::get_capacity());
         // pros::lcd::print(1, "drfb %d", getDrfb());
         // pros::lcd::print(2, "ballSens %d", getBallSens());
         // pros::lcd::print(3, "claw %d", getClaw());
@@ -66,8 +66,8 @@ void opcontrol() {
         pros::lcd::print(0, "x %f", odometry.getX());
         pros::lcd::print(1, "y %f", odometry.getY());
         pros::lcd::print(2, "a %f", odometry.getA()); /*
-         pros::lcd::print(3, "drfb %d", getDrfb());
-         printPidValues();*/
+         pros::lcd::print(3, "drfb %d", getDrfb());*/
+        printPidValues();
         bool** allClicks = getAllClicks();
         bool prevClicks[12], curClicks[12], dblClicks[12];
         for (int i = 0; i < 12; i++) {
@@ -88,10 +88,10 @@ void opcontrol() {
         setDR(joy[1] - joy[0]);
 
         // FLYWHEEL
-        if (curClicks[ctlrIdxUp]) {
-            pidFlywheel(2.9);
-        } else if (curClicks[ctlrIdxDown]) {
+        if (curClicks[ctlrIdxDown]) {
             pidFlywheel(0);
+        } else if (curClicks[ctlrIdxUp]) {
+            pidFlywheel(2.9);
         } else {
             pidFlywheel();
         }
@@ -105,7 +105,7 @@ void opcontrol() {
         } else if (curClicks[ctlrIdxR2]) {
             drfbPidRunning = false;
             tDrfbOff = millis();
-            setDrfb(-12000);
+            setDrfb(-8000);
         } else if (curClicks[ctlrIdxY]) {
             drfbPidRunning = true;
             drfbPid.target = drfbPos1;
@@ -140,9 +140,9 @@ void opcontrol() {
             } else if (curClicks[ctlrIdxL2]) {
                 intakeState = IntakeState::ALL;
             }
-            if (getBallSens() < 1800 && intakeState == IntakeState::ALL) { intakeState = IntakeState::FRONT; }
         }
-        if (fabs(flywheelPid.target - flywheelPid.sensVal) > 0.5 && intakeState == IntakeState::ALL) { intakeState = IntakeState::FRONT; }
+        if (getBallSens() < 1800 && intakeState == IntakeState::ALL) { intakeState = IntakeState::FRONT; }
+        if (flywheelPid.sensVal < 0.5 && intakeState == IntakeState::ALL) { intakeState = IntakeState::FRONT; }
         setIntake(intakeState);
 
         delete[] allClicks[0];

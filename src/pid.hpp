@@ -27,8 +27,18 @@ class Odometry_t {
     double getY();
     double getA();
 };
+class Point {
+   public:
+    double x, y;
+    Point();
+    Point(double x, double y);
+    friend Point operator+(const Point& p1, const Point& p2);
+    friend Point operator-(const Point& p1, const Point& p2);
+    friend double operator*(const Point& p1, const Point& p2);
+    double mag();
+};
 
-extern Pid_t flywheelPid, clawPid, drfbPid;
+extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, DLTurnPid, DRTurnPid;
 extern Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew;
 extern Odometry_t odometry;
 

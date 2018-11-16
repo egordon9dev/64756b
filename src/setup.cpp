@@ -18,7 +18,7 @@ pros::ADIPotentiometer* drfbPot;
 pros::ADILineSensor* ballSens;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1370, drfbMinPos = 1350, drfbPos1 = 2675, drfbPos2 = 3125, drfbMinClaw = 1600;
+const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1370, drfbMinPos = 1350, drfbPos1 = 2675, drfbPos2 = 3175, drfbMinClaw = 1600;
 const int dblClickTime = 450;
 const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
@@ -68,7 +68,7 @@ void setDrfb(int n) {
     prevDrfb = getDrfb();
     bool stall = millis() - t0 > 50 && ((n < 0 && vel > -0.1) || (n > 0 && vel < 0.1));
     int maxStall = stall ? 3000 : 12000;
-    if ((getDrfb() < drfbMinPos + 300 || getDrfb() > drfbMaxPos - 300) && maxStall > 4500) maxStall = 4500;
+    if (((getDrfb() < drfbMinPos + 300 && n < 0) || (getDrfb() > drfbMaxPos - 300 && n > 0)) && maxStall > 4500) maxStall = 4500;
     // n += (getDrfb() - drfbMinPos) / 3.0 - 300;
     n = clamp(n, -maxStall, maxStall);
     n = drfbSlew.update(n);
@@ -197,9 +197,53 @@ void setupAuton() {
 
     DLSlew.slewRate = 120;
     DRSlew.slewRate = 120;
+    DLPid.kp = 50;
+    DRPid.kp = 50;
 
     drfbPot = new ADIPotentiometer(2);
     ballSens = new ADILineSensor(8);
 }
 
 void setupOpCtrl() { setDrfbParams(false); }
+
+bool pidDrive(Point target, unsigned long wait) {
+    Point pos(odometry.getX(), odometry.getY());
+    static int prevT = 0;
+    static Point prevPos(0, 0);
+    int dt = millis() - prevT;
+    bool returnVal = false;
+    if (dt < 100) {
+        Point dir = pos - prevPos;
+        Point targetDir = target - pos;
+        if (dir.mag() < 0.001 || targetDir.mag() < 0.001) {
+            setDL(0);
+            setDR(0);
+        } else {
+            double angle = acos((dir * targetDir) / (dir.mag() * targetDir.mag()));
+                }
+        if (DLPid.doneTime + wait < millis() && DRPid.doneTime + wait < millis()) returnVal = true;
+    }
+    prevPos = pos;
+    prevT = millis();
+    return returnVal;
+}
+bool pidTurn(double angle, unsigned long wait) {
+    DLTurnPid.sensVal = getDL();
+    DLTurnPid.target = -angle * ticksPerInch;
+    DRTurnPid.sensVal = getDR();
+    DRTurnPid.target = angle * ticksPerInch;
+    setDL(DLTurnPid.update());
+    setDR(DRTurnPid.update());
+    if (DLTurnPid.doneTime + wait < millis() && DRTurnPid.doneTime + wait < millis()) return true;
+    return false;
+}
+bool pidTurnSweep(double tL, double tR, unsigned long wait) {
+    DLPid.sensVal = getDL();
+    DRPid.sensVal = getDR();
+    DLPid.target = tL * ticksPerInch;
+    DRPid.target = tR * ticksPerInch;
+    setDL(DLPid.update());
+    setDR(DRPid.update());
+    if (DLPid.doneTime + wait < millis() && DRPid.doneTime + wait < millis()) return true;
+    return false;
+}
