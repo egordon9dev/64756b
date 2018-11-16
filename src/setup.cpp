@@ -220,7 +220,7 @@ bool pidDrive(Point target, unsigned long wait) {
             setDR(0);
         } else {
             double angle = acos((dir * targetDir) / (dir.mag() * targetDir.mag()));
-                }
+        }
         if (DLPid.doneTime + wait < millis() && DRPid.doneTime + wait < millis()) returnVal = true;
     }
     prevPos = pos;
