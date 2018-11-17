@@ -16,4 +16,5 @@ void auton1() {}
 void autonomous() {
     setupAuton();
     auton1();
+    stopMotors();
 }

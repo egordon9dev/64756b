@@ -1,7 +1,7 @@
 #include "pid.hpp"
 #include "main.h"
 #include "setup.hpp"
-
+using pros::millis;
 Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, DLTurnPid, DRTurnPid, drivePid, turnPid;
 Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew;
 Odometry_t odometry(6.982698);
@@ -16,12 +16,12 @@ Point operator-(const Point& p1, const Point& p2) { return Point(p1.x - p2.x, p1
 double operator*(const Point& p1, const Point& p2) { return p1.x * p2.x + p1.y * p2.y; }
 bool operator<(const Point& p1, const Point& p2) {
     Point p1RotCCW = p1.rotate(1);
-    if (p1RotCCW * p2 > 0) return true;
+    if (p1RotCCW * p2 > 0.001) return true;
     return false;
 }
 bool operator>(const Point& p1, const Point& p2) {
     Point p1RotCCW = p1.rotate(1);
-    if (p1RotCCW * p2 < 0) return true;
+    if (p1RotCCW * p2 < -0.001) return true;
     return false;
 }
 
@@ -36,7 +36,7 @@ Point Point::rotate(int dir) const {
 Slew_t::Slew_t() {
     slewRate = 100.0;
     output = 0;
-    prevTime = pros::millis();
+    prevTime = millis();
 }
 Pid_t::Pid_t() {
     doneTime = INT_MAX;
@@ -69,9 +69,9 @@ void Odometry_t::update() {
   in: input voltage
 */
 double Slew_t::update(double in) {
-    int dt = pros::millis() - prevTime;
+    int dt = millis() - prevTime;
     if (dt > 1000) dt = 0;
-    prevTime = pros::millis();
+    prevTime = millis();
     double maxIncrease = slewRate * dt;
     double outputRate = (double)(in - output) / (double)dt;
     if (fabs(outputRate) < slewRate) {
@@ -85,21 +85,21 @@ double Slew_t::update(double in) {
 }
 // proportional + integral + derivative control feedback
 double Pid_t::update() {
-    int dt = pros::millis() - prevTime;
+    int dt = millis() - prevTime;
     if (dt > 1000) dt = 0;
-    prevTime = pros::millis();
+    prevTime = millis();
     // PROPORTIONAL
     double err = target - sensVal;
     double p = err * kp;
     // DERIVATIVE
     double d = deriv;  // set d to old derivative
-    double derivativeDt = pros::millis() - prevDUpdateTime;
+    double derivativeDt = millis() - prevDUpdateTime;
     if (derivativeDt > 1000) {
         prevSensVal = sensVal;
-        prevDUpdateTime = pros::millis();
+        prevDUpdateTime = millis();
     } else if (derivativeDt >= 15) {
         d = ((prevSensVal - sensVal) * kd) / derivativeDt;
-        prevDUpdateTime = pros::millis();
+        prevDUpdateTime = millis();
         deriv = d;  // save new derivative
         prevSensVal = sensVal;
     }
@@ -124,8 +124,8 @@ double Pid_t::update() {
     }
     double i = errTot * ki;
     // done zone
-    if (fabs(err) <= DONE_ZONE && doneTime > pros::millis()) {
-        doneTime = pros::millis();
+    if (fabs(err) <= DONE_ZONE && doneTime > millis()) {
+        doneTime = millis();
         printf("DONE\n");
     }
     // derivative action: slowing down
@@ -136,4 +136,45 @@ double Pid_t::update() {
     // printf("p: %lf, i: %lf, d: %lf\t", p, i, d);
     // OUTPUT
     return p + i + d;
+}
+Point g_target;
+bool pidDrive(const Point& target, const int wait) {
+    g_target = target;
+    Point pos(odometry.getX(), odometry.getY());
+    static int prevT = 0;
+    static Point prevPos(0, 0);
+    int dt = millis() - prevT;
+    bool returnVal = false;
+    if (dt < 100) {
+        Point dir = pos - prevPos;
+        Point targetDir = target - pos;
+        if (dir.mag() < 0.001) {
+            dir.x = 0.0;
+            dir.y = 0.1;
+        }
+        if (targetDir.mag() < 0.001) {
+            setDL(0);
+            setDR(0);
+        } else {
+            Point dirOrientation(cos(odometry.getA()), sin(odometry.getA()));
+            double aErr = acos(clamp((dir * targetDir) / (dir.mag() * targetDir.mag()), -1.0, 1.0));
+            int driveDir = 1;
+            if (dirOrientation * targetDir < 0) { driveDir = -1; }
+            if (aErr > PI / 2) aErr = PI - aErr;
+            if (dir < targetDir) aErr *= -1;
+            double curA = odometry.getA();
+            turnPid.target = curA - aErr;
+            turnPid.sensVal = curA;
+            int turnPwr = clamp((int)turnPid.update(), -8000, 8000);
+            drivePid.target = 0.0;
+            drivePid.sensVal = targetDir.mag();
+            int drivePwr = clamp((int)drivePid.update(), -8000, 8000);
+            setDL(-drivePwr * driveDir - turnPwr);
+            setDR(-drivePwr * driveDir + turnPwr);
+        }
+        if (drivePid.doneTime + wait < millis() && turnPid.doneTime + wait < millis()) returnVal = true;
+    }
+    prevPos = pos;
+    prevT = millis();
+    return returnVal;
 }

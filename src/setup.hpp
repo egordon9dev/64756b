@@ -21,13 +21,13 @@ int clamp(int n, int min, int max);
 bool** getAllClicks();
 void printAllClicks(int line, bool** allClicks);
 void printPidValues();
+void stopMotors();
 
 // -------- Drive --------
 void setDR(int n);
 void setDL(int n);
 double getDR();
 double getDL();
-bool pidDrive(Point target, int wait);
 
 //----------- Intake ------
 void intakeNone();
@@ -53,4 +53,5 @@ bool pidFlywheel(double speed);
 bool pidFlywheel();
 void setupAuton();
 void setupOpCtrl();
+void printDrivePidValues();
 #endif

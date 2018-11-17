@@ -22,7 +22,8 @@ const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1370, drfbMinPos = 1350, drfbPo
 const int dblClickTime = 450;
 const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
-int clamp(int n, int min, int max) { return n < min ? min : (n > max ? max : n); }
+int clamp(int n, int a, int b) { return n < a ? a : (n > b ? b : n); }
+double clamp(double n, double a, double b) { return n < a ? a : (n > b ? b : n); }
 
 //----------- Drive -----------
 void setDR(int n) {
@@ -39,11 +40,13 @@ void setDL(int n) {
 }
 double getDL() { return (-mtr8.get_position() - mtr9.get_position()) * 0.5; }
 double getDR() { return (mtr6.get_position() + mtr7.get_position()) * 0.5; }
+int getDLVoltage() { return -mtr8.get_voltage(); }
+int getDRVoltage() { return mtr6.get_voltage(); }
 
 //------------ Intake ---------------
 void intakeNone() { mtr5.move_voltage(0); }
-void intakeFront() { mtr5.move_voltage(12000); }
-void intakeAll() { mtr5.move_voltage(-12000); }
+void intakeFront() { mtr5.move_voltage(5000); }
+void intakeAll() { mtr5.move_voltage(-5000); }
 void setIntake(IntakeState is) {
     if (is == IntakeState::NONE) {
         intakeNone();
@@ -79,7 +82,7 @@ int getDrfbVoltage() { return mtr12.get_voltage(); }
 bool pidDrfb(double pos, int wait) {
     drfbPid.target = pos;
     drfbPid.sensVal = getDrfb();
-    drfbPid.sensVal = clamp(drfbPid.sensVal, drfbMinPos, drfbMaxPos);
+    drfbPid.sensVal = clamp((int)drfbPid.sensVal, drfbMinPos, drfbMaxPos);
     int out = drfbPid.update();
     setDrfb(out);
     if (drfbPid.doneTime + wait < millis()) return true;
@@ -164,11 +167,44 @@ void printAllClicks(int line, bool** allClicks) {
     pros::lcd::print(line + 1, line2.c_str());
     pros::lcd::print(line + 2, line3.c_str());
 }
-
+bool pidTurn(double angle, int wait) {
+    DLTurnPid.sensVal = getDL();
+    DLTurnPid.target = -angle * ticksPerInch;
+    DRTurnPid.sensVal = getDR();
+    DRTurnPid.target = angle * ticksPerInch;
+    setDL(DLTurnPid.update());
+    setDR(DRTurnPid.update());
+    if (DLTurnPid.doneTime + wait < millis() && DRTurnPid.doneTime + wait < millis()) return true;
+    return false;
+}
+bool pidTurnSweep(double tL, double tR, int wait) {
+    DLPid.sensVal = getDL();
+    DRPid.sensVal = getDR();
+    DLPid.target = tL * ticksPerInch;
+    DRPid.target = tR * ticksPerInch;
+    setDL(DLPid.update());
+    setDR(DRPid.update());
+    if (DLPid.doneTime + wait < millis() && DRPid.doneTime + wait < millis()) return true;
+    return false;
+}
+void stopMotors() {
+    setDrfb(0);
+    setDL(0);
+    setDR(0);
+    setClaw(0);
+    setFlywheel(0);
+    intakeNone();
+}
 void printPidValues() {
     printf("%.1f drfb%2d %4f/%4f fly%2d %1.1f/%1.1f\n", millis() / 1000.0, (int)(getDrfbVoltage() / 1000 + 0.5), drfbPid.sensVal, drfbPid.target, getFlywheelVoltage() / 1000, flywheelPid.sensVal, flywheelPid.target);
     std::cout << std::endl;
 }
+extern Point g_target;
+void printDrivePidValues() {
+    printf("%.1f DL%d DR%d drive %3.1f/%3.1f turn %2.1f/%2.1f pos %3.1f,%3.1f/%3.1f,%3.1f\n", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDLVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, odometry.getX(), odometry.getY(), g_target.x, g_target.y);
+    std::cout << std::endl;
+}
+
 void setDrfbParams(bool auton) {
     if (auton) {
         drfbPid.kp = 20.0;
@@ -200,63 +236,10 @@ void setupAuton() {
     DLPid.kp = 50;
     DRPid.kp = 50;
 
-    drivePid.kp = 8000;
-    turnPid.kp = 10000;
+    drivePid.kp = 100;
+    turnPid.kp = 15000;
 
     drfbPot = new ADIPotentiometer(2);
     ballSens = new ADILineSensor(8);
 }
-
 void setupOpCtrl() { setDrfbParams(false); }
-
-bool pidDrive(Point target, unsigned long wait) {
-    Point pos(odometry.getX(), odometry.getY());
-    static int prevT = 0;
-    static Point prevPos(0, 0);
-    int dt = millis() - prevT;
-    bool returnVal = false;
-    if (dt < 100) {
-        Point dir = pos - prevPos;
-        Point targetDir = target - pos;
-        if (dir.mag() < 0.001 || targetDir.mag() < 0.001) {
-            setDL(0);
-            setDR(0);
-        } else {
-            double aErr = acos((dir * targetDir) / (dir.mag() * targetDir.mag()));
-            if (dir < targetDir) aErr *= -1;
-            double curA = odometry.getA();
-            turnPid.target = curA - aErr;
-            turnPid.sensVal = curA;
-            int turnPwr = clamp(turnPid.update(), -8000, 8000);
-            drivePid.target = 0.0;
-            drivePid.sensVal = targetDir.mag();
-            int drivePwr = clamp(drivePid.update(), -8000, 8000);
-            setDL(drivePwr - turnPwr);
-            setDR(drivePwr + turnPwr);
-        }
-        if (DLPid.doneTime + wait < millis() && DRPid.doneTime + wait < millis()) returnVal = true;
-    }
-    prevPos = pos;
-    prevT = millis();
-    return returnVal;
-}
-bool pidTurn(double angle, unsigned long wait) {
-    DLTurnPid.sensVal = getDL();
-    DLTurnPid.target = -angle * ticksPerInch;
-    DRTurnPid.sensVal = getDR();
-    DRTurnPid.target = angle * ticksPerInch;
-    setDL(DLTurnPid.update());
-    setDR(DRTurnPid.update());
-    if (DLTurnPid.doneTime + wait < millis() && DRTurnPid.doneTime + wait < millis()) return true;
-    return false;
-}
-bool pidTurnSweep(double tL, double tR, unsigned long wait) {
-    DLPid.sensVal = getDL();
-    DRPid.sensVal = getDR();
-    DLPid.target = tL * ticksPerInch;
-    DRPid.target = tR * ticksPerInch;
-    setDL(DLPid.update());
-    setDR(DRPid.update());
-    if (DLPid.doneTime + wait < millis() && DRPid.doneTime + wait < millis()) return true;
-    return false;
-}

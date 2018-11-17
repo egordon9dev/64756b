@@ -1,6 +1,7 @@
 #include "main.h"
 #include "pid.hpp"
 #include "setup.hpp"
+#include "test.hpp"
 using namespace pros;
 /*
 Ch3         drive
@@ -25,23 +26,14 @@ A, Y        flip  cap
  * operator control task will be stopped. Re-enabling the robot will restart the
  * task, not resume it from where it left off.
  */
-void doTests() {
-    while (0) {
-        pidFlywheel(2.5);
-        printPidValues();
-        delay(10);
-    }
-    Point p1(20, 20);
-    while (1) {
-        /*odometry.update();
-        double x = odometry.getX(), y = odometry.getY(), a = odometry.getA();*/
-        pros::lcd::print(0, "DL %f", getDL());
-        pros::lcd::print(1, "DR %f", getDR());
-        pidDrive(p1, 999999);
-        delay(10);
-    }
-}
 void opcontrol() {
+    if (pros::battery::get_capacity() < 10.0) {
+        for (int i = 0; i < 8; i++) {
+            pros::lcd::print(1, "LOW BATTERY");
+            std::cout << "LOW BATTERY" << std::endl;
+        }
+        return;
+    }
     setupAuton();
     setupOpCtrl();
     double drv[] = {0, 0};
@@ -54,7 +46,10 @@ void opcontrol() {
     bool drfbPidRunning = false;
     IntakeState intakeState = IntakeState::NONE;
     int driveDir = 1;
-    if (1) doTests();
+    if (1) {
+        codeTest();
+        doTests();
+    }
     while (true) {
         dt = pros::millis() - prevT;
         prevT = pros::millis();
