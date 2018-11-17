@@ -41,6 +41,7 @@ class Point {
     Point rotate(int dir) const;
 };
 bool pidDrive(const Point& target, const int wait);
+bool pidTurn(const double angle, const int wait);
 
 extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, DLTurnPid, DRTurnPid, drivePid, turnPid;
 extern Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew;

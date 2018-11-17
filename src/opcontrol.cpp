@@ -1,3 +1,4 @@
+#include "auton.hpp"
 #include "main.h"
 #include "pid.hpp"
 #include "setup.hpp"
@@ -27,6 +28,8 @@ A, Y        flip  cap
  * task, not resume it from where it left off.
  */
 void opcontrol() {
+    setupAuton();
+    setupOpCtrl();
     if (pros::battery::get_capacity() < 10.0) {
         for (int i = 0; i < 8; i++) {
             pros::lcd::print(1, "LOW BATTERY");
@@ -34,8 +37,6 @@ void opcontrol() {
         }
         return;
     }
-    setupAuton();
-    setupOpCtrl();
     double drv[] = {0, 0};
     int prevT = 0;
     int dt = 0;
@@ -46,7 +47,7 @@ void opcontrol() {
     bool drfbPidRunning = false;
     IntakeState intakeState = IntakeState::NONE;
     int driveDir = 1;
-    if (1) {
+    if (0) {
         codeTest();
         doTests();
     }
@@ -123,7 +124,6 @@ void opcontrol() {
         if (drfbPidRunning) pidDrfb();
 
         // CLAW
-        int claw180 = 1350;
         double curClaw = getClaw();
         if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX] && getDrfb() > drfbMinClaw) { clawPid.target += claw180; }
         pidClaw(clawPid.target, 999999);
@@ -138,7 +138,7 @@ void opcontrol() {
                 intakeState = IntakeState::ALL;
             }
         }
-        if (getBallSens() < 1800 && intakeState == IntakeState::ALL) { intakeState = IntakeState::FRONT; }
+        if (isBallIn() && intakeState == IntakeState::ALL) { intakeState = IntakeState::FRONT; }
         if (flywheelPid.sensVal < 0.5 && intakeState == IntakeState::ALL) { intakeState = IntakeState::FRONT; }
         setIntake(intakeState);
 

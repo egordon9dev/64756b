@@ -2,6 +2,7 @@
 #include "main.h"
 #include "setup.hpp"
 using pros::millis;
+using std::cout;
 Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, DLTurnPid, DRTurnPid, drivePid, turnPid;
 Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew;
 Odometry_t odometry(6.982698);
@@ -39,7 +40,7 @@ Slew_t::Slew_t() {
     prevTime = millis();
 }
 Pid_t::Pid_t() {
-    doneTime = INT_MAX;
+    doneTime = BIL;
     DONE_ZONE = 10;
     maxIntegral = 9999999;
     dInactiveZone = iActiveZone = target = prevSensVal = sensVal = prevErr = errTot = unwind = deriv = kp = ki = kd = 0.0;
@@ -146,28 +147,25 @@ bool pidDrive(const Point& target, const int wait) {
     int dt = millis() - prevT;
     bool returnVal = false;
     if (dt < 100) {
-        Point dir = pos - prevPos;
+        // Point dir = pos - prevPos;
         Point targetDir = target - pos;
-        if (dir.mag() < 0.001) {
-            dir.x = 0.0;
-            dir.y = 0.1;
-        }
         if (targetDir.mag() < 0.001) {
             setDL(0);
             setDR(0);
         } else {
             Point dirOrientation(cos(odometry.getA()), sin(odometry.getA()));
-            double aErr = acos(clamp((dir * targetDir) / (dir.mag() * targetDir.mag()), -1.0, 1.0));
+            double aErr = acos(clamp((dirOrientation * targetDir) / (dirOrientation.mag() * targetDir.mag()), -1.0, 1.0));
             int driveDir = 1;
             if (dirOrientation * targetDir < 0) { driveDir = -1; }
             if (aErr > PI / 2) aErr = PI - aErr;
-            if (dir < targetDir) aErr *= -1;
+            if (dirOrientation < targetDir) aErr *= -1;
             double curA = odometry.getA();
+            drivePid.target = 0.0;
+            drivePid.sensVal = targetDir.mag() * cos(aErr);
+            if (drivePid.sensVal < 4) aErr = 0;
             turnPid.target = curA - aErr;
             turnPid.sensVal = curA;
             int turnPwr = clamp((int)turnPid.update(), -8000, 8000);
-            drivePid.target = 0.0;
-            drivePid.sensVal = targetDir.mag();
             int drivePwr = clamp((int)drivePid.update(), -8000, 8000);
             setDL(-drivePwr * driveDir - turnPwr);
             setDR(-drivePwr * driveDir + turnPwr);
@@ -177,4 +175,13 @@ bool pidDrive(const Point& target, const int wait) {
     prevPos = pos;
     prevT = millis();
     return returnVal;
+}
+bool pidTurn(const double angle, const int wait) {
+    turnPid.sensVal = odometry.getA();
+    turnPid.target = angle;
+    int pwr = turnPid.update();
+    setDL(-pwr);
+    setDR(pwr);
+    if (turnPid.doneTime + wait < millis()) return true;
+    return false;
 }

@@ -43,13 +43,15 @@ void doTests() {
     }
     const Point p1(20, 20);
     int lastT = 0;
+    setDL(10000);
+    setDR(10000);
+    delay(50);
     while (!ctlr.get_digital(DIGITAL_B)) {
-        /*odometry.update();
-        double x = odometry.getX(), y = odometry.getY(), a = odometry.getA();*/
         pros::lcd::print(0, "DL %f", getDL());
         pros::lcd::print(1, "DR %f", getDR());
         odometry.update();
-        pidDrive(p1, 999999);
+        // pidDrive(p1, 999999);
+        pidTurn(PI / 4, 999999);
         if (millis() - lastT > 100) {
             printDrivePidValues();
             lastT = millis();

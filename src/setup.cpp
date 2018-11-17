@@ -19,12 +19,16 @@ pros::ADILineSensor* ballSens;
 
 //----------- Constants ----------------
 const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1370, drfbMinPos = 1350, drfbPos1 = 2675, drfbPos2 = 3175, drfbMinClaw = 1600;
-const int dblClickTime = 450;
+const int dblClickTime = 450, claw180 = 1350;
 const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
+const int BIL = 1000000000, MIL = 1000000;
 int clamp(int n, int a, int b) { return n < a ? a : (n > b ? b : n); }
 double clamp(double n, double a, double b) { return n < a ? a : (n > b ? b : n); }
-
+Point polarToRect(double mag, double angle) {
+    Point p(mag * cos(angle), mag * sin(angle));
+    return p;
+}
 //----------- Drive -----------
 void setDR(int n) {
     n = clamp(n, -12000, 12000);
@@ -45,8 +49,8 @@ int getDRVoltage() { return mtr6.get_voltage(); }
 
 //------------ Intake ---------------
 void intakeNone() { mtr5.move_voltage(0); }
-void intakeFront() { mtr5.move_voltage(5000); }
-void intakeAll() { mtr5.move_voltage(-5000); }
+void intakeFront() { mtr5.move_voltage(12000); }
+void intakeAll() { mtr5.move_voltage(-12000); }
 void setIntake(IntakeState is) {
     if (is == IntakeState::NONE) {
         intakeNone();
@@ -57,6 +61,7 @@ void setIntake(IntakeState is) {
     }
 }
 int getBallSens() { return ballSens->get_value(); }
+bool isBallIn() { return getBallSens() < 1800; }
 //----------- DRFB functions ---------
 
 void setDrfb(int n) {
@@ -101,6 +106,7 @@ bool pidClaw(double a, int wait) {
     if (clawPid.doneTime + wait < millis()) return true;
     return false;
 }  // 1350
+void pidClaw() { pidClaw(clawPid.target, 999999); }
 //--------- Flywheel functions --------
 void setFlywheel(int n) {
     n = clamp(n, 0, 12000);
@@ -167,16 +173,7 @@ void printAllClicks(int line, bool** allClicks) {
     pros::lcd::print(line + 1, line2.c_str());
     pros::lcd::print(line + 2, line3.c_str());
 }
-bool pidTurn(double angle, int wait) {
-    DLTurnPid.sensVal = getDL();
-    DLTurnPid.target = -angle * ticksPerInch;
-    DRTurnPid.sensVal = getDR();
-    DRTurnPid.target = angle * ticksPerInch;
-    setDL(DLTurnPid.update());
-    setDR(DRTurnPid.update());
-    if (DLTurnPid.doneTime + wait < millis() && DRTurnPid.doneTime + wait < millis()) return true;
-    return false;
-}
+
 bool pidTurnSweep(double tL, double tR, int wait) {
     DLPid.sensVal = getDL();
     DRPid.sensVal = getDR();
@@ -236,8 +233,11 @@ void setupAuton() {
     DLPid.kp = 50;
     DRPid.kp = 50;
 
-    drivePid.kp = 100;
+    drivePid.kp = 900;
+    drivePid.kd = 25000;
+    drivePid.DONE_ZONE = 3.0;
     turnPid.kp = 15000;
+    turnPid.DONE_ZONE = PI / 20;
 
     drfbPot = new ADIPotentiometer(2);
     ballSens = new ADILineSensor(8);
