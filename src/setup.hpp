@@ -30,6 +30,8 @@ void setDR(int n);
 void setDL(int n);
 double getDR();
 double getDL();
+int getDLVoltage();
+int getDRVoltage();
 void printDrivePidValues();
 
 //----------- Intake ------

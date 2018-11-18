@@ -1,6 +1,7 @@
 #ifndef PID_H
 #define PID_H
 #include <stdbool.h>
+#include "Point.hpp"
 
 class Slew_t {
    public:
@@ -26,22 +27,16 @@ class Odometry_t {
     double getX();
     double getY();
     double getA();
+    void setA(double a);
+    void setX(double x);
+    void setY(double y);
+    Point getPos();
 };
-class Point {
-   public:
-    double x, y;
-    Point();
-    Point(double x, double y);
-    friend Point operator+(const Point& p1, const Point& p2);
-    friend Point operator-(const Point& p1, const Point& p2);
-    friend double operator*(const Point& p1, const Point& p2);
-    friend bool operator>(const Point& p1, const Point& p2);
-    friend bool operator<(const Point& p1, const Point& p2);
-    double mag() const;
-    Point rotate(int dir) const;
-};
+
 bool pidDrive(const Point& target, const int wait);
 bool pidTurn(const double angle, const int wait);
+bool pidTurnSweep(double tL, double tR, int wait);
+bool pidDriveArc(Point target, double rMag, int dir, int wait);
 
 extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, DLTurnPid, DRTurnPid, drivePid, turnPid;
 extern Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew;

@@ -1,5 +1,6 @@
 #include "setup.hpp"
 #include <string>
+#include "Point.hpp"
 #include "main.h"
 #include "pid.hpp"
 
@@ -174,16 +175,6 @@ void printAllClicks(int line, bool** allClicks) {
     pros::lcd::print(line + 2, line3.c_str());
 }
 
-bool pidTurnSweep(double tL, double tR, int wait) {
-    DLPid.sensVal = getDL();
-    DRPid.sensVal = getDR();
-    DLPid.target = tL * ticksPerInch;
-    DRPid.target = tR * ticksPerInch;
-    setDL(DLPid.update());
-    setDR(DRPid.update());
-    if (DLPid.doneTime + wait < millis() && DRPid.doneTime + wait < millis()) return true;
-    return false;
-}
 void stopMotors() {
     setDrfb(0);
     setDL(0);
@@ -198,7 +189,7 @@ void printPidValues() {
 }
 extern Point g_target;
 void printDrivePidValues() {
-    printf("%.1f DL%d DR%d drive %3.1f/%3.1f turn %2.1f/%2.1f pos %3.1f,%3.1f/%3.1f,%3.1f\n", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDLVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, odometry.getX(), odometry.getY(), g_target.x, g_target.y);
+    printf("%.1f DL%d DR%d drive %3.1f/%3.1f turn %2.1f/%2.1f x %3.1f/%3.1f y %3.1f/%3.1f\n", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y);
     std::cout << std::endl;
 }
 
@@ -227,11 +218,14 @@ void setupAuton() {
 
     drfbSlew.slewRate = 99999;
     setDrfbParams(true);
+    drfbPid.DONE_ZONE = 100;
+    drfbPid.target = drfbMinPos;
 
     DLSlew.slewRate = 120;
     DRSlew.slewRate = 120;
-    DLPid.kp = 50;
-    DRPid.kp = 50;
+    DLPid.kp = DRPid.kp = 900;
+    DLPid.kd = DRPid.kd = 25000;
+    DLPid.DONE_ZONE = DRPid.DONE_ZONE = 1.5;
 
     drivePid.kp = 900;
     drivePid.kd = 25000;

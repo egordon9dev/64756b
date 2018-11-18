@@ -41,7 +41,7 @@ void doTests() {
         printPidValues();
         delay(10);
     }
-    const Point p1(20, 20);
+    const Point p1(30, 20);
     int lastT = 0;
     setDL(10000);
     setDR(10000);
@@ -51,7 +51,8 @@ void doTests() {
         pros::lcd::print(1, "DR %f", getDR());
         odometry.update();
         // pidDrive(p1, 999999);
-        pidTurn(PI / 4, 999999);
+        // pidTurn(PI / 4, 999999);
+        pidDriveArc(p1, 100, 1, 999999);
         if (millis() - lastT > 100) {
             printDrivePidValues();
             lastT = millis();

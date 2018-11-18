@@ -1,6 +1,6 @@
+#include "Point.hpp"
 #include "main.h"
 #include "setup.hpp"
-
 /**
  * Runs the user autonomous code. This function will be started in its own task
  * with the default priority and stack size whenever the robot is enabled via
@@ -15,58 +15,174 @@
 using pros::delay;
 using pros::millis;
 using std::cout;
+using std::endl;
 void auton1(bool leftSide) {
     int i = 0;
-    Point targetPos(0, 45);
-    double targetAngle = PI / 2;
-    const int driveT = 200;
+    odometry.setA(-PI / 2);
+    Point targetPos(0, 42);
+    double targetAngle = -PI / 2;
+    const int driveT = 50;
     IntakeState is = IntakeState::NONE;
+    double arcRadius;
     int t0 = BIL;
-    while (1) {
+    int prevI = 0;
+    int lastT = 0;
+    bool drfbPidRunning = true;
+    while (!ctlr.get_digital(DIGITAL_B)) {
         int j = 0;
         odometry.update();
         if (i == j++) {
             flywheelPid.target = 2.0;
             drfbPid.target = 1800;
-            is = isBallIn() ? IntakeState::NONE : IntakeState::ALL;
+            is = IntakeState::FRONT;
             if (pidDrive(targetPos, driveT)) {
                 drivePid.doneTime = BIL;
-                targetPos.y -= 10;
+                turnPid.doneTime = BIL;
+                targetPos.y -= 5;
                 i++;
             }
         } else if (i == j++) {
-            is = isBallIn() ? IntakeState::NONE : IntakeState::ALL;
             if (pidDrive(targetPos, driveT)) {
                 drivePid.doneTime = BIL;
-                targetAngle -= PI * 0.4;
+                turnPid.doneTime = BIL;
+                targetAngle -= PI * 0.37;
                 i++;
             }
         } else if (i == j++) {
             drfbPid.target = drfbPos0;
-            is = isBallIn() ? IntakeState::NONE : IntakeState::ALL;
             if (pidTurn(targetAngle, driveT)) {
                 turnPid.doneTime = BIL;
-                targetPos = targetPos + polarToRect(-32, targetAngle);
+                targetPos = targetPos - polarToRect(20, targetAngle).abs();
                 i++;
             }
         } else if (i == j++) {
             drfbPid.target = drfbPos0 + 50;
-            is = IntakeState::NONE;
             if (pidDrive(targetPos, driveT)) {
                 drivePid.doneTime = BIL;
+                turnPid.doneTime = BIL;
+                targetPos.x = -18;
+                targetPos.y = 6;
+                arcRadius = (targetPos - odometry.getPos()).mag() + 5;
                 i++;
             }
         } else if (i == j++) {
+            double distanceToTarget = (targetPos - odometry.getPos()).mag();
+            if (arcRadius < distanceToTarget + 1) arcRadius = distanceToTarget + 1;
+            if (pidDriveArc(targetPos, arcRadius, 1, driveT)) {
+                drivePid.doneTime = BIL;
+                turnPid.doneTime = BIL;
+                targetAngle = odometry.getA() + PI * 0.22;
+                i++;
+            }
         } else if (i == j++) {
+            if (pidTurn(targetAngle, driveT)) {
+                drivePid.doneTime = BIL;
+                turnPid.doneTime = BIL;
+                t0 = millis();
+                i++;
+            }
+        } else if (i == j++) {  // SHOOT BALL 1
+            setDL(0);
+            setDR(0);
+            is = IntakeState::ALL;
+            if (millis() - t0 > 1000) {
+                is = IntakeState::NONE;
+                targetPos.x -= 22;
+                flywheelPid.doneTime = BIL;
+                i++;
+            }
         } else if (i == j++) {
+            if (pidDrive(targetPos, driveT)) {
+                drivePid.doneTime = BIL;
+                turnPid.doneTime = BIL;
+                targetPos.x += 37;
+                i++;
+            }
         } else if (i == j++) {
+            if (pidDrive(targetPos, driveT)) {
+                drivePid.doneTime = BIL;
+                turnPid.doneTime = BIL;
+                t0 = millis();
+                i++;
+            }
+        } else if (i == j++) {  // SHOOT BALL 2
+            setDL(0);
+            setDR(0);
+            is = IntakeState::ALL;
+            if (millis() - t0 > 2000) {
+                is = IntakeState::NONE;
+                targetPos.x += 11;
+                flywheelPid.target = 0;
+                arcRadius = (targetPos - odometry.getPos()).mag() + 5;
+                i++;
+            }
         } else if (i == j++) {
+            flywheelPid.target = 0;
+            if (pidDrive(targetPos, driveT)) {
+                drivePid.doneTime = BIL;
+                turnPid.doneTime = BIL;
+                drfbPid.doneTime = BIL;
+                targetAngle -= PI / 4;
+                drfbPidRunning = false;
+                i++;
+            }
         } else if (i == j++) {
+            clawPid.target = claw180;
+            bool turnDone = pidTurn(targetAngle, 0);
+            bool drfbDone = getDrfb() > drfbPos2 + 200;
+            if (drfbDone) {
+                drfbPid.target = getDrfb();
+                drfbPidRunning = true;
+            } else {
+                setDrfb(12000);
+            }
+            if (turnDone && drfbDone) {
+                drfbPid.doneTime = BIL;
+                drivePid.doneTime = BIL;
+                turnPid.doneTime = BIL;
+                t0 = millis();
+                i++;
+            }
+        } else if (i == j++) {
+            if (millis() - t0 > 2000) {
+                drfbPid.target = drfbPos2;
+                setDL(0);
+                setDR(0);
+            } else {
+                setDL(12000);
+                setDR(1000);
+            }
+            if (drfbPid.doneTime < millis() && millis() - t0 > 2000) {
+                drfbPid.doneTime = BIL;
+                odometry.setX(0);
+                odometry.setX(0);
+                odometry.setA(-PI / 2);
+                targetPos.x = 0;
+                targetPos.y = 15;
+                i++;
+            }
+        } else if (i == j++) {
+            drfbPid.target = drfbPos2;
+            if (pidDrive(targetPos, driveT)) {
+                setDL(0);
+                setDR(0);
+                i++;
+            }
+        } else {
+            stopMotors();
         }
         pidClaw();
         pidFlywheel();
-        pidDrfb();
+        if (drfbPidRunning) pidDrfb();
         setIntake(is);
+        if (i != prevI) {
+            for (int w = 0; w < 15; w++) cout << endl;
+        }
+        prevI = i;
+        if (millis() - lastT > 100) {
+            printDrivePidValues();
+            lastT = millis();
+        }
         delay(10);
     }
 }

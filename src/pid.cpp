@@ -6,34 +6,7 @@ using std::cout;
 Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, DLTurnPid, DRTurnPid, drivePid, turnPid;
 Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew;
 Odometry_t odometry(6.982698);
-Point::Point() { x = y = 0; }
-Point::Point(double x, double y) {
-    this->x = x;
-    this->y = y;
-}
 
-Point operator+(const Point& p1, const Point& p2) { return Point(p1.x + p2.x, p1.y + p2.y); }
-Point operator-(const Point& p1, const Point& p2) { return Point(p1.x - p2.x, p1.y - p2.y); }
-double operator*(const Point& p1, const Point& p2) { return p1.x * p2.x + p1.y * p2.y; }
-bool operator<(const Point& p1, const Point& p2) {
-    Point p1RotCCW = p1.rotate(1);
-    if (p1RotCCW * p2 > 0.001) return true;
-    return false;
-}
-bool operator>(const Point& p1, const Point& p2) {
-    Point p1RotCCW = p1.rotate(1);
-    if (p1RotCCW * p2 < -0.001) return true;
-    return false;
-}
-
-double Point::mag() const { return sqrt(pow(x, 2.0) + pow(y, 2.0)); }
-Point Point::rotate(int dir) const {
-    if (dir > 0) {
-        return Point(-y, x);
-    } else {
-        return Point(y, -x);
-    }
-}
 Slew_t::Slew_t() {
     slewRate = 100.0;
     output = 0;
@@ -54,6 +27,14 @@ Odometry_t::Odometry_t(double L) {
 double Odometry_t::getX() { return x; }
 double Odometry_t::getY() { return y; }
 double Odometry_t::getA() { return a; }
+void Odometry_t::setA(double a) { this->a = a; }
+void Odometry_t::setX(double x) { this->x = x; }
+void Odometry_t::setY(double y) { this->y = y; }
+Point Odometry_t::getPos() {
+    Point p(x, y);
+    return p;
+}
+
 void Odometry_t::update() {
     double curDL = getDL(), curDR = getDR();
     double deltaDL = (curDL - prevDL) / ticksPerInch, deltaDR = (curDR - prevDR) / ticksPerInch;
@@ -153,24 +134,34 @@ bool pidDrive(const Point& target, const int wait) {
             setDL(0);
             setDR(0);
         } else {
+            // error detection
             Point dirOrientation(cos(odometry.getA()), sin(odometry.getA()));
             double aErr = acos(clamp((dirOrientation * targetDir) / (dirOrientation.mag() * targetDir.mag()), -1.0, 1.0));
+
+            // allow for driving backwards
             int driveDir = 1;
-            if (dirOrientation * targetDir < 0) { driveDir = -1; }
-            if (aErr > PI / 2) aErr = PI - aErr;
-            if (dirOrientation < targetDir) aErr *= -1;
+            if (aErr > PI / 2) {
+                driveDir = -1;
+                aErr = PI - aErr;
+            }
+            if (dirOrientation < targetDir) aErr *= -driveDir;
+            if (dirOrientation > targetDir) aErr *= driveDir;
+
+            // error correction
             double curA = odometry.getA();
             drivePid.target = 0.0;
             drivePid.sensVal = targetDir.mag() * cos(aErr);
             if (drivePid.sensVal < 4) aErr = 0;
-            turnPid.target = curA - aErr;
-            turnPid.sensVal = curA;
+            turnPid.target = 0;
+            turnPid.sensVal = aErr;
             int turnPwr = clamp((int)turnPid.update(), -8000, 8000);
             int drivePwr = clamp((int)drivePid.update(), -8000, 8000);
+            // prevent turn saturation
+            // if (abs(turnPwr) > 0.2 * abs(drivePwr)) turnPwr = (turnPwr < 0 ? -1 : 1) * 0.2 * abs(drivePwr);
             setDL(-drivePwr * driveDir - turnPwr);
             setDR(-drivePwr * driveDir + turnPwr);
         }
-        if (drivePid.doneTime + wait < millis() && turnPid.doneTime + wait < millis()) returnVal = true;
+        if (drivePid.doneTime + wait < millis()) returnVal = true;
     }
     prevPos = pos;
     prevT = millis();
@@ -183,5 +174,56 @@ bool pidTurn(const double angle, const int wait) {
     setDL(-pwr);
     setDR(pwr);
     if (turnPid.doneTime + wait < millis()) return true;
+    return false;
+}
+bool pidTurnSweep(double tL, double tR, int wait) {
+    DLPid.sensVal = getDL();
+    DRPid.sensVal = getDR();
+    DLPid.target = tL * ticksPerInch;
+    DRPid.target = tR * ticksPerInch;
+    setDL(DLPid.update());
+    setDR(DRPid.update());
+    if (DLPid.doneTime + wait < millis() && DRPid.doneTime + wait < millis()) return true;
+    return false;
+}
+
+bool pidDriveArc(Point target, double rMag, int rotationDirection, int wait) {
+    // error detection
+    Point pos(odometry.getX(), odometry.getY());
+    Point deltaPos = target - pos;
+    Point midPt((pos.x + target.x) / 2.0, (pos.y + target.y) / 2.0);
+    double altAngle = atan2(deltaPos.y, deltaPos.x) + (PI / 2) * rotationDirection;
+    double altMag = sqrt(pow(rMag, 2) - pow(deltaPos.mag() / 2, 2));
+    Point center = midPt + polarToRect(altMag, altAngle);
+    double arcLen = 2 * acos(altMag / rMag) * rMag;
+    drivePid.sensVal = arcLen;
+    drivePid.target = 0;
+    Point rVector = center - pos;
+    Point targetVector = rVector.rotate(-1 * rotationDirection);
+    Point orientationVector(cos(odometry.getA()), sin(odometry.getA()));
+    double errAngle = acos((targetVector * orientationVector) / (targetVector.mag() * orientationVector.mag()));
+
+    // allow for driving backwards
+    int driveDir = 1;
+    if (errAngle > PI / 2) {
+        driveDir = -1;
+        errAngle = PI - errAngle;
+    }
+    if (orientationVector < targetVector) errAngle *= -driveDir;
+    if (orientationVector > targetVector) errAngle *= driveDir;
+
+    // error correction
+    double errRadius = (pos - center).mag() - rMag;
+    turnPid.sensVal = errAngle;
+    turnPid.target = 0;
+    drivePid.sensVal *= cos(errAngle);
+    double drivePwrFactor = 1.0 / (1.0 + errRadius);
+    int drivePwr = clamp((int)(-drivePid.update() * drivePwrFactor), -8000, 8000);
+    int turnPwr = clamp((int)turnPid.update(), -8000, 8000);
+    if (fabs(arcLen) < 4) turnPwr = 0;
+    setDL(drivePwr * driveDir - turnPwr);
+    setDR(drivePwr * driveDir + turnPwr);
+
+    if (drivePid.doneTime + wait < millis()) return true;
     return false;
 }

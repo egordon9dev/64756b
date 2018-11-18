@@ -1,6 +1,7 @@
 #include "auton.hpp"
 #include "main.h"
 #include "pid.hpp"
+#include "point.hpp"
 #include "setup.hpp"
 #include "test.hpp"
 using namespace pros;
@@ -37,6 +38,7 @@ void opcontrol() {
         }
         return;
     }
+    const int opcontrolT0 = millis();
     double drv[] = {0, 0};
     int prevT = 0;
     int dt = 0;
@@ -47,9 +49,20 @@ void opcontrol() {
     bool drfbPidRunning = false;
     IntakeState intakeState = IntakeState::NONE;
     int driveDir = 1;
-    if (0) {
+    if (1) {
+        odometry.setA(-PI / 2);
         codeTest();
-        doTests();
+        // doTests();
+        setupAuton();
+        auton1(true);
+        while (1) {
+            odometry.update();
+            pros::lcd::print(0, "x %f", odometry.getX());
+            pros::lcd::print(1, "y %f", odometry.getY());
+            pros::lcd::print(2, "a %f", odometry.getA());
+            stopMotors();
+            delay(50);
+        }
     }
     while (true) {
         dt = pros::millis() - prevT;
@@ -112,7 +125,7 @@ void opcontrol() {
             drfbPidRunning = true;
             drfbPid.target = drfbPos2;
             setDrfbParams(true);
-        } else if ((int)millis() - tDrfbOff > 130 && millis() > 300) {
+        } else if ((int)millis() - tDrfbOff > 130 && millis() - opcontrolT0 > 300) {
             if (!drfbPidRunning) {
                 drfbPidRunning = true;
                 drfbPid.target = getDrfb();
@@ -137,8 +150,8 @@ void opcontrol() {
             } else if (curClicks[ctlrIdxL2]) {
                 intakeState = IntakeState::ALL;
             }
+            if (isBallIn() && intakeState == IntakeState::ALL) { intakeState = IntakeState::FRONT; }
         }
-        if (isBallIn() && intakeState == IntakeState::ALL) { intakeState = IntakeState::FRONT; }
         if (flywheelPid.sensVal < 0.5 && intakeState == IntakeState::ALL) { intakeState = IntakeState::FRONT; }
         setIntake(intakeState);
 
