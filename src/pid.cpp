@@ -23,6 +23,7 @@ Odometry_t::Odometry_t(double L) {
     this->L = L;
     this->a = PI / 2;
     this->x = this->y = this->prevDL = this->prevDR = 0.0;
+    this->xAxisDir = this->rotationDir = 1;
 }
 double Odometry_t::getX() { return x; }
 double Odometry_t::getY() { return y; }
@@ -30,6 +31,8 @@ double Odometry_t::getA() { return a; }
 void Odometry_t::setA(double a) { this->a = a; }
 void Odometry_t::setX(double x) { this->x = x; }
 void Odometry_t::setY(double y) { this->y = y; }
+void Odometry_t::setXAxisDir(int n) { xAxisDir = n < 0 ? -1 : 1; }
+void Odometry_t::setRotationDir(int n) { rotationDir = n < 0 ? -1 : 1; }
 Point Odometry_t::getPos() {
     Point p(x, y);
     return p;
@@ -40,7 +43,7 @@ void Odometry_t::update() {
     double deltaDL = (curDL - prevDL) / ticksPerInch, deltaDR = (curDR - prevDR) / ticksPerInch;
     double deltaDC = (deltaDL + deltaDR) / 2.0;
     double deltaA = (deltaDR - deltaDL) / (2.0 * L);
-    x += deltaDC * cos(a + deltaA / 2);
+    x += deltaDC * cos(a + deltaA / 2) * xAxisDir;
     y += deltaDC * sin(a + deltaA / 2);
     a += deltaA;
     prevDL = curDL;
@@ -167,10 +170,11 @@ bool pidDrive(const Point& target, const int wait) {
     prevT = millis();
     return returnVal;
 }
+int g_pidTurnLimit = 12000;
 bool pidTurn(const double angle, const int wait) {
     turnPid.sensVal = odometry.getA();
     turnPid.target = angle;
-    int pwr = turnPid.update();
+    int pwr = clamp((int)turnPid.update(), -g_pidTurnLimit, g_pidTurnLimit);
     setDL(-pwr);
     setDR(pwr);
     if (turnPid.doneTime + wait < millis()) return true;

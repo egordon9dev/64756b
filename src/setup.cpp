@@ -19,7 +19,7 @@ pros::ADIPotentiometer* drfbPot;
 pros::ADILineSensor* ballSens;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1370, drfbMinPos = 1350, drfbPos1 = 2675, drfbPos2 = 3175, drfbMinClaw = 1600;
+const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1380, drfbMinPos = 1350, drfbPos1 = 2675, drfbPos2 = 3175, drfbMinClaw = 1600;
 const int dblClickTime = 450, claw180 = 1350;
 const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;

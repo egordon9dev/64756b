@@ -54,7 +54,7 @@ void opcontrol() {
         codeTest();
         // doTests();
         setupAuton();
-        auton1(true);
+        auton2(true);
         while (1) {
             odometry.update();
             pros::lcd::print(0, "x %f", odometry.getX());

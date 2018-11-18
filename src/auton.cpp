@@ -17,6 +17,9 @@ using pros::millis;
 using std::cout;
 using std::endl;
 void auton1(bool leftSide) {
+    int sideSign = leftSide ? 1 : -1;
+    odometry.setXAxisDir(sideSign);
+    odometry.setRotationDir(sideSign);
     int i = 0;
     odometry.setA(-PI / 2);
     Point targetPos(0, 42);
@@ -28,7 +31,7 @@ void auton1(bool leftSide) {
     int prevI = 0;
     int lastT = 0;
     bool drfbPidRunning = true;
-    while (!ctlr.get_digital(DIGITAL_B)) {
+    while (1) {
         int j = 0;
         odometry.update();
         if (i == j++) {
@@ -175,6 +178,135 @@ void auton1(bool leftSide) {
         pidFlywheel();
         if (drfbPidRunning) pidDrfb();
         setIntake(is);
+        if (i != prevI) {
+            for (int w = 0; w < 15; w++) cout << endl;
+        }
+        prevI = i;
+        if (millis() - lastT > 100) {
+            printDrivePidValues();
+            lastT = millis();
+        }
+        delay(10);
+    }
+}
+void auton2(bool leftSide) {
+    int sideSign = leftSide ? 1 : -1;
+    odometry.setXAxisDir(sideSign);
+    odometry.setRotationDir(sideSign);
+    int i = 0;
+    odometry.setA(-PI / 2);
+    Point targetPos(0, 42);
+    double targetAngle = -PI / 2;
+    const int driveT = 50;
+    IntakeState is = IntakeState::NONE;
+    double arcRadius;
+    int t0 = BIL;
+    int prevI = 0;
+    int lastT = 0;
+    bool drfbPidRunning = true;
+    while (1) {
+        int j = 0;
+        odometry.update();
+        if (i == j++) {
+            drfbPid.target = drfbPos0;
+            is = IntakeState::FRONT;
+            if (pidDrive(targetPos, driveT)) {
+                drivePid.doneTime = BIL;
+                turnPid.doneTime = BIL;
+                targetPos.y -= 5;
+                i++;
+            }
+        } else if (i == j++) {
+            if (pidDrive(targetPos, driveT)) {
+                drivePid.doneTime = BIL;
+                turnPid.doneTime = BIL;
+                targetAngle += PI * 0.62;
+                i++;
+            }
+        } else if (i == j++) {
+            if (pidTurn(targetAngle, driveT)) {
+                drivePid.doneTime = BIL;
+                turnPid.doneTime = BIL;
+                targetPos = targetPos + polarToRect(24, targetAngle).abs();
+                i++;
+            }
+        } else if (i == j++) {
+            if (pidDrive(targetPos, driveT)) {
+                drivePid.doneTime = BIL;
+                turnPid.doneTime = BIL;
+                drfbPidRunning = false;
+                g_pidTurnLimit = 4000;
+                targetAngle -= PI * 0.9;
+                i++;
+            }
+        } else if (i == j++) {
+            setDrfb(3000);
+            if (pidTurn(targetAngle, driveT)) {
+                drivePid.doneTime = BIL;
+                turnPid.doneTime = BIL;
+                targetPos.x = 17;
+                targetPos.y = 12;
+                g_pidTurnLimit = 12000;
+                i++;
+            }
+        } else if (i == j++) {
+            if (getDrfb() > drfbPos1 + 300) {
+                drfbPid.target = getDrfb();
+                drfbPidRunning = true;
+            } else {
+                setDrfb(12000);
+            }
+            if (getDrfb() > drfbMinClaw) clawPid.target = claw180;
+            if (pidDrive(targetPos, driveT)) {
+                drivePid.doneTime = BIL;
+                turnPid.doneTime = BIL;
+                drfbPid.doneTime = BIL;
+                drfbPid.target = getDrfb();
+                drfbPidRunning = true;
+                t0 = millis();
+                i++;
+            }
+
+        } else if (i == j++) {
+            setDL(3000);
+            setDR(3000);
+            if (millis() - t0 > 800) {
+                i++;
+                drivePid.doneTime = BIL;
+                turnPid.doneTime = BIL;
+                odometry.setX(0);
+                odometry.setX(0);
+                odometry.setA(-PI / 2);
+                targetPos.x = 0;
+                targetPos.y = 1.5;
+            }
+        } else if (i == j++) {
+            if (pidDrive(targetPos, driveT)) {
+                drivePid.doneTime = BIL;
+                turnPid.doneTime = BIL;
+                i++;
+            }
+        } else if (i == j++) {
+            setDrfb(-12000);
+            if (getDrfb() < drfbPos1 + 100) {
+                targetPos.y = 15;
+                i++;
+            }
+        } else if (i == j++) {
+            drfbPid.target = drfbPos1;
+            if (pidDrive(targetPos, driveT)) {
+                setDL(0);
+                setDR(0);
+                i++;
+            }
+        } else {
+            stopMotors();
+        }
+        pidClaw();
+        pidFlywheel();
+        if (drfbPidRunning) pidDrfb();
+        setIntake(is);
+        setFlywheel(0);
         if (i != prevI) {
             for (int w = 0; w < 15; w++) cout << endl;
         }
