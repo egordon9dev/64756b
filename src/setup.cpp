@@ -11,8 +11,9 @@ pros::Motor mtr7(7);
 pros::Motor mtr8(8);
 pros::Motor mtr9(9);
 pros::Motor mtr10(10);
-pros::Motor mtr11(11);
-pros::Motor mtr12(12);
+pros::Motor mtr13(13);
+pros::Motor mtr12(1);
+// bad ports: 11, 12
 pros::Controller ctlr(pros::E_CONTROLLER_MASTER);
 
 pros::ADIPotentiometer* drfbPot;
@@ -64,7 +65,6 @@ void setIntake(IntakeState is) {
 int getBallSens() { return ballSens->get_value(); }
 bool isBallIn() { return getBallSens() < 1800; }
 //----------- DRFB functions ---------
-
 void setDrfb(int n) {
     static int prevN = -99999, t0 = 0;
     static int prevDrfb = drfbMinPos, prevT = 0;
@@ -97,9 +97,9 @@ void pidDrfb() { pidDrfb(drfbPid.target, 9999999); }
 //---------- Claw functions --------
 void setClaw(int n) {
     clamp(n, -12000, 12000);
-    mtr11.move_voltage(n);
+    mtr13.move_voltage(n);
 }
-double getClaw() { return mtr11.get_position(); }
+double getClaw() { return mtr13.get_position(); }
 bool pidClaw(double a, int wait) {
     clawPid.target = a;
     clawPid.sensVal = getClaw();

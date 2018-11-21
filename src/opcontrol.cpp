@@ -28,6 +28,8 @@ A, Y        flip  cap
  * operator control task will be stopped. Re-enabling the robot will restart the
  * task, not resume it from where it left off.
  */
+using std::cout;
+using std::endl;
 void opcontrol() {
     setupAuton();
     setupOpCtrl();
@@ -36,7 +38,7 @@ void opcontrol() {
             pros::lcd::print(1, "LOW BATTERY");
             std::cout << "LOW BATTERY" << std::endl;
         }
-        return;
+        // return;
     }
     const int opcontrolT0 = millis();
     double drv[] = {0, 0};
@@ -49,13 +51,15 @@ void opcontrol() {
     bool drfbPidRunning = false;
     IntakeState intakeState = IntakeState::NONE;
     int driveDir = 1;
-    if (1) {
+    if (0) {
         odometry.setA(-PI / 2);
         codeTest();
         // doTests();
         setupAuton();
         auton2(true);
         while (1) {
+            // cout << getDrfb() << endl;
+            setDrfb(3000);
             odometry.update();
             pros::lcd::print(0, "x %f", odometry.getX());
             pros::lcd::print(1, "y %f", odometry.getY());

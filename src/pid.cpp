@@ -43,7 +43,7 @@ void Odometry_t::update() {
     double deltaDL = (curDL - prevDL) / ticksPerInch, deltaDR = (curDR - prevDR) / ticksPerInch;
     double deltaDC = (deltaDL + deltaDR) / 2.0;
     double deltaA = (deltaDR - deltaDL) / (2.0 * L);
-    x += deltaDC * cos(a + deltaA / 2) * xAxisDir;
+    x += deltaDC * cos(a + deltaA / 2);
     y += deltaDC * sin(a + deltaA / 2);
     a += deltaA;
     prevDL = curDL;
