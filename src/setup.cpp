@@ -17,11 +17,12 @@ pros::Motor mtr12(1);
 pros::Controller ctlr(pros::E_CONTROLLER_MASTER);
 
 pros::ADIPotentiometer* drfbPot;
+pros::ADIPotentiometer* clawPot;
 pros::ADILineSensor* ballSens;
 
 //----------- Constants ----------------
 const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1380, drfbMinPos = 1350, drfbPos1 = 2675, drfbPos2 = 3175, drfbMinClaw = 1600;
-const int dblClickTime = 450, claw180 = 1350;
+const int dblClickTime = 450, claw180 = 1350, clawPos0 = 338, clawPos1 = clawPos0 + 3354;  // 3354
 const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
 const int BIL = 1000000000, MIL = 1000000;
@@ -96,10 +97,12 @@ bool pidDrfb(double pos, int wait) {
 void pidDrfb() { pidDrfb(drfbPid.target, 9999999); }
 //---------- Claw functions --------
 void setClaw(int n) {
+    if (getDrfb() < drfbMinClaw || (getClaw() > clawPos1 && n > 0) || (getClaw() < clawPos0 && n < 0)) n = 0;
     clamp(n, -12000, 12000);
     mtr13.move_voltage(n);
 }
-double getClaw() { return mtr13.get_position(); }
+double getClaw() { return clawPot->get_value(); }
+int getClawVoltage() { return mtr13.get_voltage(); }
 bool pidClaw(double a, int wait) {
     clawPid.target = a;
     clawPid.sensVal = getClaw();
@@ -184,7 +187,7 @@ void stopMotors() {
     intakeNone();
 }
 void printPidValues() {
-    printf("%.1f drfb%2d %4f/%4f fly%2d %1.1f/%1.1f\n", millis() / 1000.0, (int)(getDrfbVoltage() / 1000 + 0.5), drfbPid.sensVal, drfbPid.target, getFlywheelVoltage() / 1000, flywheelPid.sensVal, flywheelPid.target);
+    printf("%.1f drfb%2d %4d/%4d fly%2d %1.1f/%1.1f claw%2d %4d/%4d\n", millis() / 1000.0, (int)(getDrfbVoltage() / 1000 + 0.5), (int)drfbPid.sensVal, (int)drfbPid.target, getFlywheelVoltage() / 1000, flywheelPid.sensVal, flywheelPid.target, (int)(getClawVoltage() / 1000 + 0.5), (int)clawPid.sensVal, (int)clawPid.target);
     std::cout << std::endl;
 }
 extern Point g_target;
@@ -214,7 +217,10 @@ void setupAuton() {
 
     flywheelPid.DONE_ZONE = 0.2;
 
-    clawPid.kp = 50.0;
+    clawPid.kp = 7.0;
+    clawPid.ki = 0.01;
+    clawPid.iActiveZone = 300;
+    clawPid.unwind = 0;
 
     drfbSlew.slewRate = 99999;
     setDrfbParams(true);
@@ -234,6 +240,7 @@ void setupAuton() {
     turnPid.DONE_ZONE = PI / 20;
 
     drfbPot = new ADIPotentiometer(2);
+    clawPot = new ADIPotentiometer(4);
     ballSens = new ADILineSensor(8);
 }
 void setupOpCtrl() { setDrfbParams(false); }

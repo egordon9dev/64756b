@@ -49,9 +49,15 @@ void opcontrol() {
     int prevL2T = -9999999;
     int tDrfbOff = 0;
     bool drfbPidRunning = false;
+    bool clawFlipped = false, clawInit = false;
     IntakeState intakeState = IntakeState::NONE;
     int driveDir = 1;
     if (0) {
+        while (1) {
+            stopMotors();
+            printf("%d\n", (int)getClaw());
+            delay(10);
+        }
         odometry.setA(-PI / 2);
         codeTest();
         // doTests();
@@ -141,10 +147,18 @@ void opcontrol() {
         if (drfbPidRunning) pidDrfb();
 
         // CLAW
-        double curClaw = getClaw();
-        if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX] && getDrfb() > drfbMinClaw) { clawPid.target += claw180; }
-        pidClaw(clawPid.target, 999999);
-
+        if (millis() - opcontrolT0 > 300) {
+            if (clawInit) {
+                if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX] && getDrfb() > drfbMinClaw) { clawFlipped = !clawFlipped; }
+                clawPid.target = clawFlipped ? clawPos1 : clawPos0;
+                pidClaw(clawPid.target, 999999);
+            } else {
+                clawFlipped = getClaw() > (clawPos0 + clawPos1) / 2;
+                clawInit = true;
+            }
+        } else {
+            setClaw(0);
+        }
         // INTAKE
         if (curClicks[ctlrIdxL1] && curClicks[ctlrIdxL2]) {
             intakeState = IntakeState::ALL;
@@ -166,5 +180,6 @@ void opcontrol() {
         pros::delay(10);
     }
     delete drfbPot;
+    delete clawPot;
     delete ballSens;
 }
