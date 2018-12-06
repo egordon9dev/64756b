@@ -11,7 +11,7 @@ pros::Motor mtr7(7);
 pros::Motor mtr8(8);
 pros::Motor mtr9(9);
 pros::Motor mtr10(10);
-pros::Motor mtr11(12);
+pros::Motor mtr11(13);
 pros::Motor mtr12(1);
 // bad ports: 11, 12, 5
 pros::Controller ctlr(pros::E_CONTROLLER_MASTER);
@@ -134,7 +134,11 @@ bool pidFlywheel(double speed) {
         prevFlywheelT = millis();
     }
     setFlywheel(flywheelOutput);
-    return fabs(flywheelPid.sensVal - flywheelPid.target) < flywheelPid.DONE_ZONE;
+    return flywheelPid.doneTime < millis();
+}
+bool pidFlywheel(double speed, int wait) {
+	pidFlywheel(speed);
+	return flywheelPid.doneTime + wait < millis();
 }
 bool pidFlywheel() { return pidFlywheel(flywheelPid.target); }
 //--------------------- Misc -----------------

@@ -57,8 +57,9 @@ void pidClaw();
 //--------- Flywheel functions --------
 void setFlywheel(int n);
 double getFlywheel();
-bool pidFlywheel(double speed);
 bool pidFlywheel();
+bool pidFlywheel(double speed);
+bool pidFlywheel(double speed, int wait);
 void setupAuton();
 void setupOpCtrl();
 #endif

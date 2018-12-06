@@ -52,7 +52,27 @@ void opcontrol() {
     bool clawFlipped = false, clawInit = false;
     IntakeState intakeState = IntakeState::NONE;
     int driveDir = 1;
-    if (0) {
+    if (1) {
+		int t0 = BIL;
+		int i = 0, j = 0;
+		while(1) {
+			j = 0;
+			if(i == j++) {
+				intakeNone();
+				if(pidFlywheel(2.7, 800)) {
+					t0 = millis();
+					i++;
+				}
+			} else if(i == j++){
+				setFlywheel(2.7);
+				intakeAll();
+				if(millis() - t0 > 3000) i++;
+			} else {
+				setFlywheel(0);
+				intakeNone();
+			}
+			delay(10);
+		}
         while (1) {
             stopMotors();
             printf("%d\n", (int)getDrfb());
@@ -151,8 +171,13 @@ void opcontrol() {
             if (clawInit) {
                 if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX]) {
 					clawFlipped = !clawFlipped;
-					if(getDrfb() < drfbMinClaw && drfbPid.target < drfbMinClaw) drfbPid.target = drfbMinClaw;
+					if(getDrfb() < drfbMinClaw && drfbPid.target < drfbMinClaw) {
+						drfbPidRunning = true;
+						drfbPid.target = drfbMinClaw;
+						setDrfbParams(true);
+					}
 				}
+				if(getDrfb() > drfbMinClaw) setDrfbParams(false);
                 clawPid.target = clawFlipped ? clawPos1 : clawPos0;
                 pidClaw(clawPid.target, 999999);
             } else {
