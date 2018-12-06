@@ -55,16 +55,19 @@ void opcontrol() {
     if (1) {
 		int t0 = BIL;
 		int i = 0, j = 0;
+		auton2(true);
+		while(1) delay(10);
 		while(1) {
 			j = 0;
 			if(i == j++) {
 				intakeNone();
-				if(pidFlywheel(2.7, 800)) {
+				printPidValues();
+				if(pidFlywheel(2.8, 2000)) {
 					t0 = millis();
 					i++;
 				}
 			} else if(i == j++){
-				setFlywheel(2.7);
+				setFlywheel(2.8);
 				intakeAll();
 				if(millis() - t0 > 3000) i++;
 			} else {

@@ -210,6 +210,8 @@ void auton2(bool leftSide) {
     bool drfbPidRunning = true;
     int prevITime = millis();
     int timeBetweenI = 4000;
+	drivePid.doneTime = BIL;
+	turnPid.doneTime = BIL;
     while (1) {
         if (i != prevI) { prevITime = millis(); }
         prevI = i;
@@ -231,15 +233,6 @@ void auton2(bool leftSide) {
             if (pidDrive(targetPos, driveT)) {
                 drivePid.doneTime = BIL;
                 turnPid.doneTime = BIL;
-                targetPos.y -= 15;
-                i++;
-            }
-        } else if (i == j++) {
-            drfbPid.target = drfbMinPos;
-            drfbPidRunning = true;
-            if (pidDrive(targetPos, driveT)) {
-                drivePid.doneTime = BIL;
-                turnPid.doneTime = BIL;
                 targetAngle = odometry.getA() + PI * 0.6 * sideSign;
                 i++;
             }
@@ -255,12 +248,12 @@ void auton2(bool leftSide) {
         } else if (i == j++) {
             double distanceToTarget = (targetPos - odometry.getPos()).mag();
             if (arcRadius < distanceToTarget + 1) arcRadius = distanceToTarget + 1;
-            if (pidDriveArc(targetPos, arcRadius, sideSign, driveT)) {
+            if (pidDriveArc(targetPos, arcRadius, -sideSign, driveT)) {
                 drivePid.doneTime = BIL;
                 turnPid.doneTime = BIL;
                 drfbPidRunning = false;
                 g_pidTurnLimit = 7000;
-                targetAngle = odometry.getA() + PI * 0.8 * sideSign;
+                targetAngle = odometry.getA() + PI * 0.8 * -sideSign;
                 i++;
             }
         } else if (i == j++) {
@@ -352,7 +345,7 @@ void auton2(bool leftSide) {
             }
         } else if (i == j++) {
             drfbPidRunning = false;
-            if (getDrfb() > drfbMinPos + 80) {
+            if (getDrfb() > drfbPos0 + 80) {
                 setDrfb(-12000);
                 setDL(0);
                 setDR(0);

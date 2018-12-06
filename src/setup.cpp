@@ -21,7 +21,7 @@ pros::ADIPotentiometer* clawPot;
 pros::ADILineSensor* ballSens;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1380, drfbMinPos = 1350, drfbPos1 = 2655, drfbPos2 = 3175, drfbMinClaw = 1800;
+const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1380, drfbMinPos = 1370, drfbPos1 = 2655, drfbPos2 = 3175, drfbMinClaw = 1800;
 const int dblClickTime = 450, claw180 = 1350, clawPos0 = 338, clawPos1 = clawPos0 + 3354;  // 3354
 const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
@@ -68,7 +68,7 @@ bool isBallIn() { return getBallSens() < 1800; }
 //----------- DRFB functions ---------
 void setDrfb(int n) {
     static int prevN = -99999, t0 = 0;
-    static int prevDrfb = drfbMinPos, prevT = 0;
+    static int prevDrfb = drfbPos0, prevT = 0;
     if (abs(n - prevN) > 1000) {
         t0 = millis();
         prevN = n;
@@ -129,6 +129,7 @@ bool pidFlywheel(double speed) {
         if (dt < 500) {
             flywheelPid.sensVal = (getFlywheel() - prevFlywheelPos) / dt;
             flywheelOutput += flywheelPid.update();
+			flywheelOutput = clamp(flywheelOutput, 0, 12000);
         }
         prevFlywheelPos = getFlywheel();
         prevFlywheelT = millis();
@@ -215,8 +216,8 @@ void setDrfbParams(bool auton) {
 }
 void setupAuton() {
     flywheelSlew.slewRate = 9999;  // 60;
-    flywheelPid.kp = 130.0;
-    flywheelPid.kd = 100000.0;
+    flywheelPid.kp = 200.0;
+    flywheelPid.kd = 10000.0;
     flywheelPid.dInactiveZone = 0.01;
 
     flywheelPid.DONE_ZONE = 0.2;
@@ -229,7 +230,7 @@ void setupAuton() {
     drfbSlew.slewRate = 99999;
     setDrfbParams(true);
     drfbPid.DONE_ZONE = 100;
-    drfbPid.target = drfbMinPos;
+    drfbPid.target = drfbPos0;
 
     DLSlew.slewRate = 120;
     DRSlew.slewRate = 120;
