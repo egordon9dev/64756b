@@ -5,15 +5,15 @@
 #include "pid.hpp"
 
 using namespace pros;
-pros::Motor mtr5(5);
-pros::Motor mtr6(6);
+pros::Motor mtr5(4);
+pros::Motor mtr6(11);
 pros::Motor mtr7(7);
 pros::Motor mtr8(8);
 pros::Motor mtr9(9);
 pros::Motor mtr10(10);
-pros::Motor mtr13(13);
+pros::Motor mtr11(12);
 pros::Motor mtr12(1);
-// bad ports: 11, 12
+// bad ports: 11, 12, 5
 pros::Controller ctlr(pros::E_CONTROLLER_MASTER);
 
 pros::ADIPotentiometer* drfbPot;
@@ -21,7 +21,7 @@ pros::ADIPotentiometer* clawPot;
 pros::ADILineSensor* ballSens;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1380, drfbMinPos = 1350, drfbPos1 = 2675, drfbPos2 = 3175, drfbMinClaw = 1600;
+const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1380, drfbMinPos = 1350, drfbPos1 = 2655, drfbPos2 = 3175, drfbMinClaw = 1800;
 const int dblClickTime = 450, claw180 = 1350, clawPos0 = 338, clawPos1 = clawPos0 + 3354;  // 3354
 const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
@@ -99,10 +99,10 @@ void pidDrfb() { pidDrfb(drfbPid.target, 9999999); }
 void setClaw(int n) {
     if (getDrfb() < drfbMinClaw || (getClaw() > clawPos1 && n > 0) || (getClaw() < clawPos0 && n < 0)) n = 0;
     clamp(n, -12000, 12000);
-    mtr13.move_voltage(n);
+    mtr11.move_voltage(n);
 }
 double getClaw() { return clawPot->get_value(); }
-int getClawVoltage() { return mtr13.get_voltage(); }
+int getClawVoltage() { return mtr11.get_voltage(); }
 bool pidClaw(double a, int wait) {
     clawPid.target = a;
     clawPid.sensVal = getClaw();

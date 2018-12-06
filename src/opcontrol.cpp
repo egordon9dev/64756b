@@ -55,7 +55,7 @@ void opcontrol() {
     if (0) {
         while (1) {
             stopMotors();
-            printf("%d\n", (int)getClaw());
+            printf("%d\n", (int)getDrfb());
             delay(10);
         }
         odometry.setA(-PI / 2);
@@ -149,7 +149,10 @@ void opcontrol() {
         // CLAW
         if (millis() - opcontrolT0 > 300) {
             if (clawInit) {
-                if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX] && getDrfb() > drfbMinClaw) { clawFlipped = !clawFlipped; }
+                if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX]) {
+					clawFlipped = !clawFlipped;
+					if(getDrfb() < drfbMinClaw && drfbPid.target < drfbMinClaw) drfbPid.target = drfbMinClaw;
+				}
                 clawPid.target = clawFlipped ? clawPos1 : clawPos0;
                 pidClaw(clawPid.target, 999999);
             } else {
