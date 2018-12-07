@@ -6,8 +6,8 @@
 
 using namespace pros;
 pros::Motor mtr5(4);
-pros::Motor mtr6(11);
-pros::Motor mtr7(7);
+pros::Motor mtr6(7);
+pros::Motor mtr7(6);
 pros::Motor mtr8(8);
 pros::Motor mtr9(9);
 pros::Motor mtr10(10);
@@ -47,8 +47,29 @@ void setDL(int n) {
 }
 double getDL() { return (-mtr8.get_position() - mtr9.get_position()) * 0.5; }
 double getDR() { return (mtr6.get_position() + mtr7.get_position()) * 0.5; }
+void printDriveEncoders() { printf("encs %d %d %d %d\n", (int)mtr6.get_position(), (int)mtr7.get_position(), (int)mtr8.get_position(), (int)mtr9.get_position()); }
 int getDLVoltage() { return -mtr8.get_voltage(); }
 int getDRVoltage() { return mtr6.get_voltage(); }
+void runMotorTest() {
+	for(int i = 0; i < 3; i++) {
+		mtr6.move_voltage(5000);
+		delay(150);
+		stopMotors();
+		delay(500);
+		mtr7.move_voltage(5000);
+		delay(150);
+		stopMotors();
+		delay(500);
+		mtr8.move_voltage(5000);
+		delay(150);
+		stopMotors();
+		delay(500);
+		mtr9.move_voltage(5000);
+		delay(150);
+		stopMotors();
+		delay(1500);
+	}
+}
 
 //------------ Intake ---------------
 void intakeNone() { mtr5.move_voltage(0); }
@@ -197,7 +218,7 @@ void printPidValues() {
 }
 extern Point g_target;
 void printDrivePidValues() {
-    printf("%.1f DL%d DR%d drive %3.1f/%3.1f turn %2.1f/%2.1f x %3.1f/%3.1f y %3.1f/%3.1f\n", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y);
+    printf("%.1f DL%d DR%d drive %3.1f/%3.1f turn %2.1f/%2.1f x %3.1f/%3.1f y %3.1f/%3.1f", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y);
     std::cout << std::endl;
 }
 

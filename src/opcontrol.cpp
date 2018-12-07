@@ -53,46 +53,15 @@ void opcontrol() {
     IntakeState intakeState = IntakeState::NONE;
     int driveDir = 1;
     if (1) {
-		int t0 = BIL;
-		int i = 0, j = 0;
-		auton2(true);
-		while(1) delay(10);
-		while(1) {
-			j = 0;
-			if(i == j++) {
-				intakeNone();
-				printPidValues();
-				if(pidFlywheel(2.8, 2000)) {
-					t0 = millis();
-					i++;
-				}
-			} else if(i == j++){
-				setFlywheel(2.8);
-				intakeAll();
-				if(millis() - t0 > 3000) i++;
-			} else {
-				setFlywheel(0);
-				intakeNone();
-			}
-			delay(10);
-		}
-        while (1) {
-            stopMotors();
-            printf("%d\n", (int)getDrfb());
-            delay(10);
-        }
-        odometry.setA(-PI / 2);
-        codeTest();
-        // doTests();
         setupAuton();
-        auton2(true);
+        odometry.setA(-PI / 2);
+        auton2(false);
         while (1) {
-            // cout << getDrfb() << endl;
-            setDrfb(3000);
             odometry.update();
             pros::lcd::print(0, "x %f", odometry.getX());
             pros::lcd::print(1, "y %f", odometry.getY());
             pros::lcd::print(2, "a %f", odometry.getA());
+			printDrivePidValues();
             stopMotors();
             delay(50);
         }

@@ -198,7 +198,10 @@ void auton2(bool leftSide) {
     odometry.setXAxisDir(sideSign);
     // odometry.setRotationDir(sideSign);
     int i = 0;
+	int k = 0;
     odometry.setA(-PI / 2);
+    odometry.setX(0);
+    odometry.setY(0);
     Point targetPos(0, 45);
     double targetAngle = -PI / 2;
     const int driveT = 500;
@@ -212,7 +215,7 @@ void auton2(bool leftSide) {
     int timeBetweenI = 4000;
 	drivePid.doneTime = BIL;
 	turnPid.doneTime = BIL;
-    while (1) {
+    while (!ctlr.get_digital(DIGITAL_B)) {
         if (i != prevI) { prevITime = millis(); }
         prevI = i;
         if (millis() - prevITime > timeBetweenI) break;
@@ -220,12 +223,16 @@ void auton2(bool leftSide) {
         odometry.update();
         if (i == j++) {
             t0 = millis();
+            drivePid.doneTime = BIL;
+            turnPid.doneTime = BIL;
             i++;
+			k = 0;
         } else if (i == j++) {
-            if (millis() - t0 < 500) {
+			if(k == 0) {
                 setDrfb(12000);
                 drfbPidRunning = false;
-            } else {
+				if (millis() - t0 > 500 || getDrfb() > drfbMinClaw - 50) k++;
+			} else {
                 drfbPidRunning = true;
                 drfbPid.target = drfbPos0;
             }
@@ -233,39 +240,32 @@ void auton2(bool leftSide) {
             if (pidDrive(targetPos, driveT)) {
                 drivePid.doneTime = BIL;
                 turnPid.doneTime = BIL;
-                targetAngle = odometry.getA() + PI * 0.6 * sideSign;
+                arcRadius = (targetPos - odometry.getPos()).mag() + 20;
+                targetPos.x = 7 * sideSign;
+                targetPos.y = 20;
                 i++;
             }
-        } else if (i == j++) {
-            if (pidTurn(targetAngle, driveT)) {
+        } else if (i == j++) { // arc twd cap 2
+            if (pidDriveArc(targetPos, arcRadius, sideSign, driveT)) {
                 drivePid.doneTime = BIL;
                 turnPid.doneTime = BIL;
-                arcRadius = (targetPos - odometry.getPos()).mag() + 1;
-                targetPos.x = odometry.getX() + 14 * fabs(cos(targetAngle)) * sideSign;
-                targetPos.y = odometry.getY() + 45 * fabs(sin(targetAngle)) + 6;
-                i++;
-            }
-        } else if (i == j++) {
-            double distanceToTarget = (targetPos - odometry.getPos()).mag();
-            if (arcRadius < distanceToTarget + 1) arcRadius = distanceToTarget + 1;
-            if (pidDriveArc(targetPos, arcRadius, -sideSign, driveT)) {
-                drivePid.doneTime = BIL;
-                turnPid.doneTime = BIL;
-                drfbPidRunning = false;
-                g_pidTurnLimit = 7000;
+                targetPos.x = 14 * sideSign;
+                targetPos.y = 50;
                 targetAngle = odometry.getA() + PI * 0.8 * -sideSign;
                 i++;
             }
-        } else if (i == j++) {
-            setDrfb(5000);
-            if (pidTurn(targetAngle, driveT)) {
+        } else if (i == j++) { // arc twd cap 2
+            if (pidDriveArc(targetPos, arcRadius, sideSign, driveT)) {
                 drivePid.doneTime = BIL;
                 turnPid.doneTime = BIL;
                 targetPos.x = 7.5;
                 targetPos.y = 16;
+				drfbPidRunning = false;
                 g_pidTurnLimit = 12000;
                 i++;
             }
+        } else if (i == j++) {
+			//pick up cap
         } else if (i == j++) {
             drfbPid.target = drfbPos1 - 500;
             drfbPidRunning = true;
@@ -365,11 +365,14 @@ void auton2(bool leftSide) {
             for (int w = 0; w < 15; w++) cout << endl;
         }
         if (millis() - lastT > 100) {
+			printf("%d", i);
+			printf(": ");
             printDrivePidValues();
             lastT = millis();
         }
         delay(10);
     }
+	stopMotors();
 }
 void autonomous() {
     setupAuton();

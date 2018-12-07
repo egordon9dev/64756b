@@ -34,6 +34,8 @@ double getDL();
 int getDLVoltage();
 int getDRVoltage();
 void printDrivePidValues();
+void printDriveEncoders();
+void runMotorTest();
 
 //----------- Intake ------
 void intakeNone();

@@ -40,12 +40,12 @@ Point Odometry_t::getPos() {
 
 void Odometry_t::update() {
     double curDL = getDL(), curDR = getDR();
-    double deltaDL = (curDL - prevDL) / ticksPerInch, deltaDR = (curDR - prevDR) / ticksPerInch;
+    double deltaDL = (curDL - this->prevDL) / ticksPerInch, deltaDR = (curDR - this->prevDR) / ticksPerInch;
     double deltaDC = (deltaDL + deltaDR) / 2.0;
     double deltaA = (deltaDR - deltaDL) / (2.0 * L);
-    x += deltaDC * cos(a + deltaA / 2);
-    y += deltaDC * sin(a + deltaA / 2);
-    a += deltaA;
+    this->x += deltaDC * cos(a + deltaA / 2);
+    this->y += deltaDC * sin(a + deltaA / 2);
+    this->a += deltaA;
     prevDL = curDL;
     prevDR = curDR;
 }
@@ -192,6 +192,9 @@ bool pidTurnSweep(double tL, double tR, int wait) {
 }
 
 bool pidDriveArc(Point target, double rMag, int rotationDirection, int wait) {
+	double distanceToTarget = (target - odometry.getPos()).mag();
+	if (rMag < distanceToTarget + 1) rMag = distanceToTarget + 1;
+	
     // error detection
     Point pos(odometry.getX(), odometry.getY());
     Point deltaPos = target - pos;
