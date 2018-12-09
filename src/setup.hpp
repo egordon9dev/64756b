@@ -4,6 +4,7 @@
 #include "pid.hpp"
 #define TICKS_TO_DEG 0.4
 extern pros::Motor mtr5, mtr6, mtr7, mtr8, mtr9, mtr10, mtr13, mtr12;
+extern MotorSaver dlSaver, drSaver, drfbSaver, clawSaver, flySaver, intakeSaver;
 extern pros::Controller ctlr;
 extern pros::ADIPotentiometer* drfbPot;
 extern pros::ADIPotentiometer* clawPot;

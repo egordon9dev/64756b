@@ -5,6 +5,7 @@ class Point {
     double x, y;
     Point();
     Point(double x, double y);
+    void set(double x, double y);
     friend Point operator+(const Point& p1, const Point& p2);
     friend Point operator-(const Point& p1, const Point& p2);
     friend double operator*(const Point& p1, const Point& p2);

@@ -190,27 +190,48 @@ bool pidTurnSweep(double tL, double tR, int wait) {
     if (DLPid.doneTime + wait < millis() && DRPid.doneTime + wait < millis()) return true;
     return false;
 }
+namespace arcData {
+Point center;
+Point _target;
+double _rMag;
+int _rotationDirection;
+int wait;
+void init(Point start, Point target, double rMag, int rotationDirection) {
+    _target = target;
+    _rotationDirection = rotationDirection;
+    _rMag = rMag;
 
-bool pidDriveArc(Point target, double rMag, int rotationDirection, int wait) {
-	double distanceToTarget = (target - odometry.getPos()).mag();
-	if (rMag < distanceToTarget + 1) rMag = distanceToTarget + 1;
-	
-    // error detection
-    Point pos(odometry.getX(), odometry.getY());
-    Point deltaPos = target - pos;
-    Point midPt((pos.x + target.x) / 2.0, (pos.y + target.y) / 2.0);
+    Point deltaPos = target - start;
+    Point midPt((start.x + target.x) / 2.0, (start.y + target.y) / 2.0);
     double altAngle = atan2(deltaPos.y, deltaPos.x) + (PI / 2) * rotationDirection;
-    double altMag = sqrt(pow(rMag, 2) - pow(deltaPos.mag() / 2, 2));
-    Point center = midPt + polarToRect(altMag, altAngle);
-    double arcLen = 2 * acos(altMag / rMag) * rMag;
-    drivePid.sensVal = arcLen;
-    drivePid.target = 0;
-    Point rVector = center - pos;
-    Point targetVector = rVector.rotate(-1 * rotationDirection);
-    Point orientationVector(cos(odometry.getA()), sin(odometry.getA()));
-    double errAngle = acos((targetVector * orientationVector) / (targetVector.mag() * orientationVector.mag()));
+    double altMag = sqrt(clamp(pow(rMag, 2) - pow(deltaPos.mag() / 2, 2), 0.0, 999999999.9));
+    center = midPt + polarToRect(altMag, altAngle);
+}
+double getArcLen() {
+    Point deltaPos = _target - odometry.getPos();
+    double altMag = sqrt(clamp(pow(_rMag, 2) - pow(deltaPos.mag() / 2, 2), 0.0, 999999999.9));
+    return 2 * acos(clamp(altMag / _rMag, -1.0, 1.0)) * _rMag;
+}
+}  // namespace arcData
+bool pidDriveArcInit(Point start, Point target, double rMag, int rotationDirection, int wait) {
+    arcData::init(start, target, rMag, rotationDirection);
+    arcData::wait = wait;
+}
+bool pidDriveArc() {
+    using arcData::_rMag;
+    using arcData::_rotationDirection;
+    using arcData::center;
+    using arcData::wait;
+    Point pos = odometry.getPos();
+    double arcLen = arcData::getArcLen();
 
-    // allow for driving backwards
+    Point rVector = center - pos;
+    Point targetVector = rVector.rotate(-1 * _rotationDirection);
+    Point orientationVector(cos(odometry.getA()), sin(odometry.getA()));
+    double x = (targetVector * orientationVector) / (targetVector.mag() * orientationVector.mag());
+    double errAngle = acos(clamp(x, -1.0, 1.0));
+
+    // allow for driving backwards and allow for negative errAngle values
     int driveDir = 1;
     if (errAngle > PI / 2) {
         driveDir = -1;
@@ -220,16 +241,17 @@ bool pidDriveArc(Point target, double rMag, int rotationDirection, int wait) {
     if (orientationVector > targetVector) errAngle *= driveDir;
 
     // error correction
-    double errRadius = (pos - center).mag() - rMag;
     turnPid.sensVal = errAngle;
     turnPid.target = 0;
-    drivePid.sensVal *= cos(errAngle);
-    double drivePwrFactor = 1.0 / (1.0 + errRadius);
-    int drivePwr = clamp((int)(-drivePid.update() * drivePwrFactor), -8000, 8000);
+    drivePid.sensVal *= arcLen * cos(errAngle);
+    drivePid.target = 0;
+    int drivePwr = clamp((int)-drivePid.update(), -8000, 8000);
     int turnPwr = clamp((int)turnPid.update(), -8000, 8000);
     if (fabs(arcLen) < 4) turnPwr = 0;
-    setDL(drivePwr * driveDir - turnPwr);
-    setDR(drivePwr * driveDir + turnPwr);
+    double errRadius = clamp(rVector.mag() - _rMag, -5.0, 5.0);
+    double inflator = 2.0 / (1.0 + exp(-errRadius * 0.2));  // gets a value from 0 to 2 from sigmoid
+    setDL((drivePwr * driveDir - turnPwr) * inflator);
+    setDR((drivePwr * driveDir + turnPwr) * (2.0 - inflator));
 
     if (drivePid.doneTime + wait < millis()) return true;
     return false;

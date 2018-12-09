@@ -1,10 +1,12 @@
 #include "setup.hpp"
 #include <string>
+#include "MotorSaver.hpp"
 #include "Point.hpp"
 #include "main.h"
 #include "pid.hpp"
 
 using namespace pros;
+// motors
 pros::Motor mtr5(4);
 pros::Motor mtr6(7);
 pros::Motor mtr7(6);
@@ -14,8 +16,19 @@ pros::Motor mtr10(10);
 pros::Motor mtr11(13);
 pros::Motor mtr12(1);
 // bad ports: 11, 12, 5
+
+// motor savers
+MotorSaver dlSaver(40);
+MotorSaver drSaver(40);
+MotorSaver drfbSaver(40);
+MotorSaver clawSaver(40);
+MotorSaver intakeSaver(40);
+MotorSaver flySaver(40);
+MotorSaver drfbSaver(40);
+
 pros::Controller ctlr(pros::E_CONTROLLER_MASTER);
 
+// sensors
 pros::ADIPotentiometer* drfbPot;
 pros::ADIPotentiometer* clawPot;
 pros::ADILineSensor* ballSens;
@@ -33,48 +46,55 @@ Point polarToRect(double mag, double angle) {
     return p;
 }
 //----------- Drive -----------
+double getDL() { return (-mtr8.get_position() - mtr9.get_position()) * 0.5; }
+double getDR() { return (mtr6.get_position() + mtr7.get_position()) * 0.5; }
 void setDR(int n) {
     n = clamp(n, -12000, 12000);
     n = DRSlew.update(n);
+    n = drSaver.getPwr(n, getDR());
     mtr6.move_voltage(n);
     mtr7.move_voltage(n);
 }
 void setDL(int n) {
     n = clamp(n, -12000, 12000);
     n = DLSlew.update(n);
+    n = dlSaver.getPwr(n, getDL());
     mtr8.move_voltage(-n);
     mtr9.move_voltage(-n);
 }
-double getDL() { return (-mtr8.get_position() - mtr9.get_position()) * 0.5; }
-double getDR() { return (mtr6.get_position() + mtr7.get_position()) * 0.5; }
 void printDriveEncoders() { printf("encs %d %d %d %d\n", (int)mtr6.get_position(), (int)mtr7.get_position(), (int)mtr8.get_position(), (int)mtr9.get_position()); }
 int getDLVoltage() { return -mtr8.get_voltage(); }
 int getDRVoltage() { return mtr6.get_voltage(); }
 void runMotorTest() {
-	for(int i = 0; i < 3; i++) {
-		mtr6.move_voltage(5000);
-		delay(150);
-		stopMotors();
-		delay(500);
-		mtr7.move_voltage(5000);
-		delay(150);
-		stopMotors();
-		delay(500);
-		mtr8.move_voltage(5000);
-		delay(150);
-		stopMotors();
-		delay(500);
-		mtr9.move_voltage(5000);
-		delay(150);
-		stopMotors();
-		delay(1500);
-	}
+    for (int i = 0; i < 3; i++) {
+        mtr6.move_voltage(5000);
+        delay(150);
+        stopMotors();
+        delay(500);
+        mtr7.move_voltage(5000);
+        delay(150);
+        stopMotors();
+        delay(500);
+        mtr8.move_voltage(5000);
+        delay(150);
+        stopMotors();
+        delay(500);
+        mtr9.move_voltage(5000);
+        delay(150);
+        stopMotors();
+        delay(1500);
+    }
 }
 
 //------------ Intake ---------------
-void intakeNone() { mtr5.move_voltage(0); }
-void intakeFront() { mtr5.move_voltage(12000); }
-void intakeAll() { mtr5.move_voltage(-12000); }
+void setIntake(int n) {
+    n = clamp(n, -12000, 12000);
+    n = intakeSaver.getPwr(n, mtr5.get_position());
+    mtr5.move_voltage(n);
+}
+void intakeNone() { setIntake(0); }
+void intakeFront() { setIntake(12000); }
+void intakeAll() { setIntake(-12000); }
 void setIntake(IntakeState is) {
     if (is == IntakeState::NONE) {
         intakeNone();
@@ -103,6 +123,7 @@ void setDrfb(int n) {
     // n += (getDrfb() - drfbMinPos) / 3.0 - 300;
     n = clamp(n, -maxStall, maxStall);
     n = drfbSlew.update(n);
+    n = drfbSaver.getPwr(n, getDrfb());
     mtr12.move_voltage(-n);
 }
 int getDrfb() { return 4095 - drfbPot->get_value(); }
@@ -119,7 +140,7 @@ void pidDrfb() { pidDrfb(drfbPid.target, 9999999); }
 //---------- Claw functions --------
 void setClaw(int n) {
     if (getDrfb() < drfbMinClaw || (getClaw() > clawPos1 && n > 0) || (getClaw() < clawPos0 && n < 0)) n = 0;
-    clamp(n, -12000, 12000);
+    n = clawSaver.getPwr(n, mtr11.get_position());
     mtr11.move_voltage(n);
 }
 double getClaw() { return clawPot->get_value(); }
@@ -136,6 +157,7 @@ void pidClaw() { pidClaw(clawPid.target, 999999); }
 void setFlywheel(int n) {
     n = clamp(n, 0, 12000);
     n = flywheelSlew.update(n);
+    n = flySaver.getPwr(n, getFlywheel());
     mtr10.move_voltage(n);
 }
 double getFlywheel() { return mtr10.get_position(); }
@@ -150,7 +172,7 @@ bool pidFlywheel(double speed) {
         if (dt < 500) {
             flywheelPid.sensVal = (getFlywheel() - prevFlywheelPos) / dt;
             flywheelOutput += flywheelPid.update();
-			flywheelOutput = clamp(flywheelOutput, 0, 12000);
+            flywheelOutput = clamp(flywheelOutput, 0, 12000);
         }
         prevFlywheelPos = getFlywheel();
         prevFlywheelT = millis();
@@ -159,8 +181,8 @@ bool pidFlywheel(double speed) {
     return flywheelPid.doneTime < millis();
 }
 bool pidFlywheel(double speed, int wait) {
-	pidFlywheel(speed);
-	return flywheelPid.doneTime + wait < millis();
+    pidFlywheel(speed);
+    return flywheelPid.doneTime + wait < millis();
 }
 bool pidFlywheel() { return pidFlywheel(flywheelPid.target); }
 //--------------------- Misc -----------------
