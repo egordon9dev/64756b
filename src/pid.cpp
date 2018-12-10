@@ -207,6 +207,7 @@ void init(Point start, Point target, double rMag, int rotationDirection) {
     double altMag = sqrt(clamp(pow(rMag, 2) - pow(deltaPos.mag() / 2, 2), 0.0, 999999999.9));
     center = midPt + polarToRect(altMag, altAngle);
 }
+// estimate the distance remaining for the drive
 double getArcLen() {
     Point deltaPos = _target - odometry.getPos();
     double altMag = sqrt(clamp(pow(_rMag, 2) - pow(deltaPos.mag() / 2, 2), 0.0, 999999999.9));
