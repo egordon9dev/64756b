@@ -287,6 +287,10 @@ void setupAuton() {
     turnPid.kp = 15000;
     turnPid.DONE_ZONE = PI / 20;
 
+    drfbPid.target = drfbPos0;
+    clawPid.target = clawPos0;
+    flywheelPid.target = 0;
+
     drfbPot = new ADIPotentiometer(2);
     clawPot = new ADIPotentiometer(4);
     ballSens = new ADILineSensor(8);

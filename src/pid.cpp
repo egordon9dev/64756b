@@ -123,7 +123,22 @@ double Pid_t::update() {
     return p + i + d;
 }
 Point g_target;
-bool pidDrive(const Point& target, const int wait) {
+namespace driveData {
+Point target;
+int wait;
+void init(Point t, int w) {
+    target = t;
+    wait = w;
+}
+}  // namespace driveData
+void pidDriveInit(const Point& target, const int wait) {
+    drivePid.doneTime = BIL;
+    turnPid.doneTime = BIL;
+    driveData::init(target, wait);
+}
+bool pidDrive() {
+    using driveData::target;
+    using driveData::wait;
     g_target = target;
     Point pos(odometry.getX(), odometry.getY());
     static int prevT = 0;
@@ -214,7 +229,9 @@ double getArcLen() {
     return 2 * acos(clamp(altMag / _rMag, -1.0, 1.0)) * _rMag;
 }
 }  // namespace arcData
-bool pidDriveArcInit(Point start, Point target, double rMag, int rotationDirection, int wait) {
+void pidDriveArcInit(Point start, Point target, double rMag, int rotationDirection, int wait) {
+    drivePid.doneTime = BIL;
+    turnPid.doneTime = BIL;
     arcData::init(start, target, rMag, rotationDirection);
     arcData::wait = wait;
 }

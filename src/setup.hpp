@@ -1,5 +1,6 @@
 #ifndef SETUP_H
 #define SETUP_H
+#include "MotorSaver.hpp"
 #include "main.h"
 #include "pid.hpp"
 #define TICKS_TO_DEG 0.4

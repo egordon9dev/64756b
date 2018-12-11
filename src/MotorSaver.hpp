@@ -3,7 +3,7 @@
 
 class MotorSaver {
    private:
-    int prevEncVal, speedsLen, maxSpeed, maxPwr;
+    int prevEncVal, speedsLen, maxSpeed, maxPwr, sumSpeed, sumPwr;
     int *speeds;
     int *pwrs;
     MotorSaver();
@@ -12,6 +12,11 @@ class MotorSaver {
     MotorSaver(int iterations);
     ~MotorSaver();
     int getPwr(int inputPwr, int encoderValue);
+    int getSumSpeed();
+    int getSumPwr();
+    int getMaxSpeed();
+    int getMaxPwr();
+    bool isFaster(double d);
 };
 
 #endif

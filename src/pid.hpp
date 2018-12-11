@@ -36,10 +36,12 @@ class Odometry_t {
     Point getPos();
 };
 
-bool pidDrive(const Point& target, const int wait);
+void pidDriveInit(const Point& target, const int wait);
+bool pidDrive();
 bool pidTurn(const double angle, const int wait);
 bool pidTurnSweep(double tL, double tR, int wait);
-bool pidDriveArc(Point target, double rMag, int dir, int wait);
+void pidDriveArcInit(Point start, Point target, double rMag, int rotationDirection, int wait);
+bool pidDriveArc();
 
 extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, DLTurnPid, DRTurnPid, drivePid, turnPid;
 extern Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew;

@@ -28,7 +28,7 @@ int MotorSaver::getPwr(int inputPwr, int encoderValue) {
     pwrs[speedsLen - 1] = abs(inputPwr);
 
     // limit stall torque to protect motor
-    int sumSpeed = 0, sumPwr = 0;
+    sumSpeed = 0, sumPwr = 0;
     for (int i = 0; i < speedsLen; i++) {
         sumSpeed += speeds[i];
         sumPwr += pwrs[i];
@@ -37,3 +37,8 @@ int MotorSaver::getPwr(int inputPwr, int encoderValue) {
     if (sumSpeed < maxSpeed * 0.02 && sumPwr > maxPwr * 0.25) { inputPwr = 0; }
     return clamp(inputPwr, -12000, 12000);
 }
+int MotorSaver::getSumSpeed() { return sumSpeed; }
+int MotorSaver::getSumPwr() { return sumPwr; }
+int MotorSaver::getMaxSpeed() { return maxSpeed; }
+int MotorSaver::getMaxPwr() { return maxPwr; }
+bool MotorSaver::isFaster(double d) { return sumSpeed > maxSpeed * d; }
