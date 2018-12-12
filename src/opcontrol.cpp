@@ -55,13 +55,14 @@ void opcontrol() {
     if (1) {
         setupAuton();
         odometry.setA(-PI / 2);
-        auton2(false);
+        // auton2(false);
         while (1) {
             odometry.update();
-            pros::lcd::print(0, "x %f", odometry.getX());
-            pros::lcd::print(1, "y %f", odometry.getY());
-            pros::lcd::print(2, "a %f", odometry.getA());
-			printDrivePidValues();
+            // pros::lcd::print(0, "x %f", odometry.getX());
+            // pros::lcd::print(1, "y %f", odometry.getY());
+            // pros::lcd::print(2, "a %f", odometry.getA());
+            // printDrivePidValues();
+            printf("%d\n", (int)getClaw());
             stopMotors();
             delay(50);
         }
@@ -142,14 +143,14 @@ void opcontrol() {
         if (millis() - opcontrolT0 > 300) {
             if (clawInit) {
                 if (curClicks[ctlrIdxX] && !prevClicks[ctlrIdxX]) {
-					clawFlipped = !clawFlipped;
-					if(getDrfb() < drfbMinClaw && drfbPid.target < drfbMinClaw) {
-						drfbPidRunning = true;
-						drfbPid.target = drfbMinClaw;
-						setDrfbParams(true);
-					}
-				}
-				if(getDrfb() > drfbMinClaw) setDrfbParams(false);
+                    clawFlipped = !clawFlipped;
+                    if (getDrfb() < drfbMinClaw && drfbPid.target < drfbMinClaw) {
+                        drfbPidRunning = true;
+                        drfbPid.target = drfbMinClaw;
+                        setDrfbParams(true);
+                    }
+                }
+                if (getDrfb() > drfbMinClaw) setDrfbParams(false);
                 clawPid.target = clawFlipped ? clawPos1 : clawPos0;
                 pidClaw(clawPid.target, 999999);
             } else {

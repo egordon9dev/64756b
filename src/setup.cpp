@@ -24,7 +24,6 @@ MotorSaver drfbSaver(40);
 MotorSaver clawSaver(40);
 MotorSaver intakeSaver(40);
 MotorSaver flySaver(40);
-MotorSaver drfbSaver(40);
 
 pros::Controller ctlr(pros::E_CONTROLLER_MASTER);
 
