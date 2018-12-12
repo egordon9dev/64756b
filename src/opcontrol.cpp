@@ -55,7 +55,7 @@ void opcontrol() {
     if (1) {
         setupAuton();
         odometry.setA(-PI / 2);
-        //auton2(false);
+        auton2(false);
         while (1) {
             odometry.update();
             // pros::lcd::print(0, "x %f", odometry.getX());

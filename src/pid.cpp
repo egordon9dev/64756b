@@ -224,12 +224,10 @@ void init(Point start, Point target, double rMag, int rotationDirection) {
 }
 // estimate the distance remaining for the drive
 double getArcLen() {
-    Point deltaPos = target - odometry.getPos();
-    Point midPt((start.x + target.x) / 2.0, (start.y + target.y) / 2.0);
-    double altAngle = atan2(deltaPos.y, deltaPos.x) + (PI / 2) * rotationDirection;
-    double altMag = sqrt(clamp(pow(rMag, 2) - pow(deltaPos.mag() / 2, 2), 0.0, 999999999.9));
-    Point c = midPt + polarToRect(altMag, altAngle);
-    
+	Point pos = odometry.getPos();
+    Point deltaPos = _target - pos;
+    Point midPt((pos.x + _target.x) / 2.0, (pos.y + _target.y) / 2.0);
+    double altAngle = atan2(deltaPos.y, deltaPos.x) + (PI / 2) * _rotationDirection;
     double altMag = sqrt(clamp(pow(_rMag, 2) - pow(deltaPos.mag() / 2, 2), 0.0, 999999999.9));
     return 2 * acos(clamp(altMag / _rMag, -1.0, 1.0)) * _rMag;
 }
@@ -239,6 +237,9 @@ void pidDriveArcInit(Point start, Point target, double rMag, int rotationDirecti
     turnPid.doneTime = BIL;
     arcData::init(start, target, rMag, rotationDirection);
     arcData::wait = wait;
+}
+double sigmoid(double x, double stretch) {
+	return 1.0 / (1.0 + exp(-x * stretch));
 }
 bool pidDriveArc() {
     using arcData::_rMag;
@@ -272,7 +273,8 @@ bool pidDriveArc() {
     int turnPwr = clamp((int)turnPid.update(), -8000, 8000);
     if (fabs(arcLen) < 4) turnPwr = 0;
     double errRadius = clamp(rVector.mag() - _rMag, -5.0, 5.0);
-    double inflator = 2.0 / (1.0 + exp(-errRadius * 0.2));  // gets a value from 0 to 2 from sigmoid
+    double inflator = 2.0 * sigmoid(errRadius, 0.2);
+	double curveFactor = sigmoid(_rMag, 0.005);
     setDL((drivePwr * driveDir - turnPwr) * inflator);
     setDR((drivePwr * driveDir + turnPwr) * (2.0 - inflator));
 
