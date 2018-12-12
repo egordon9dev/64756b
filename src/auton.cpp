@@ -201,7 +201,7 @@ void auton2(bool leftSide) {
     int k = 0;
     odometry.setA(-PI / 2);
     odometry.setX(0);
-    odometry.setY(0);
+    odometry.setY(-4);
     double targetAngle = -PI / 2;
     const int driveT = 800;
     IntakeState is = IntakeState::NONE;
@@ -247,8 +247,12 @@ void auton2(bool leftSide) {
         } else if (i == j++) {  // back away from cap 1
             flywheelPid.target = 2.7;
             drfbPidRunning = true;
-            drfbPid.target = drfbPos0;
-            clawPidRunning = true;
+			if(getDrfb() > drfb18max) {
+				drfbPid.target = drfbPos0;
+				clawPidRunning = true;
+			} else {
+				setDrfb(12000);
+			}
             if (getClaw() > (clawPos0 + clawPos1) * 0.5) {
                 clawPid.target = clawPos1;
             } else {
@@ -257,7 +261,9 @@ void auton2(bool leftSide) {
             setDL(12000);
             setDR(12000);
             if (odometry.getY() < 37) {
-                pidDriveArcInit(Point(0, 35), Point(24 * sideSign, 44), 2 /*min*/, sideSign, driveT);
+				setDL(0);
+				setDR(0);
+                pidDriveArcInit(Point(0, 35), Point(24 * sideSign, 45), 15 /*min*/, sideSign, 6000);
                 i++;
             }
         } else if (i == j++) {  // arc twd cap 2

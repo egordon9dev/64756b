@@ -10,7 +10,7 @@ extern pros::Controller ctlr;
 extern pros::ADIPotentiometer* drfbPot;
 extern pros::ADIPotentiometer* clawPot;
 extern pros::ADILineSensor* ballSens;
-extern const int drfbMinPos, drfbMaxPos, drfbPos0, drfbPos1, drfbPos2, drfbMinClaw, claw180, clawPos0, clawPos1;
+extern const int drfbMinPos, drfbMaxPos, drfbPos0, drfbPos1, drfbPos2, drfbMinClaw, claw180, clawPos0, clawPos1, drfb18max;
 extern const int ctlrIdxLeft, ctlrIdxUp, ctlrIdxRight, ctlrIdxDown, ctlrIdxY, ctlrIdxX, ctlrIdxA, ctlrIdxB, ctlrIdxL1, ctlrIdxL2, ctlrIdxR1, ctlrIdxR2;
 extern const int BIL, MIL;
 extern const int dblClickTime;

@@ -55,14 +55,14 @@ void opcontrol() {
     if (1) {
         setupAuton();
         odometry.setA(-PI / 2);
-        // auton2(false);
+        //auton2(false);
         while (1) {
             odometry.update();
             // pros::lcd::print(0, "x %f", odometry.getX());
             // pros::lcd::print(1, "y %f", odometry.getY());
             // pros::lcd::print(2, "a %f", odometry.getA());
             // printDrivePidValues();
-            printf("%d\n", (int)getClaw());
+            printf("%d\n", (int)getDrfb());
             stopMotors();
             delay(50);
         }
