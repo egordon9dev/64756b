@@ -52,22 +52,25 @@ void opcontrol() {
     bool clawFlipped = false, clawInit = false;
     IntakeState intakeState = IntakeState::NONE;
     int driveDir = 1;
-    if (0) {
-        setupAuton();
+    if (1) {
         odometry.setA(-PI / 2);
-        //auton2(false);
+        setupAuton();
+        pidDriveArcInit(Point(0, 0), Point(-20, 70), 10, 1, 1000);
         while (1) {
-            odometry.update();
-            // pros::lcd::print(0, "x %f", odometry.getX());
-            // pros::lcd::print(1, "y %f", odometry.getY());
-            // pros::lcd::print(2, "a %f", odometry.getA());
-            // printDrivePidValues();
-            printf("claw %d     drfb %d\n", (int)getClaw(), (int)getDrfb());
-            stopMotors();
-            delay(50);
+            for (int i = 0; i < 5; i++) {
+                odometry.update();
+                // pros::lcd::print(0, "x %f", odometry.getX());
+                // pros::lcd::print(1, "y %f", odometry.getY());
+                // pros::lcd::print(2, "a %f", odometry.getA());
+                // printDrivePidValues();
+                // printf("claw %d     drfb %d\n", (int)getClaw(), (int)getDrfb());
+                pidDriveArc();
+                delay(10);
+            }
+            printArcData();
         }
     }
-	setDrfbParams(false);
+    setDrfbParams(false);
     while (true) {
         dt = pros::millis() - prevT;
         prevT = pros::millis();

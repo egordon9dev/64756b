@@ -3,7 +3,7 @@
 #include "setup.hpp"
 using pros::millis;
 using std::cout;
-Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, DLTurnPid, DRTurnPid, drivePid, turnPid;
+Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, DLTurnPid, DRTurnPid, drivePid, turnPid, curvePid;
 Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew;
 Odometry_t odometry(6.982698);
 
@@ -206,12 +206,16 @@ bool pidTurnSweep(double tL, double tR, int wait) {
     return false;
 }
 namespace arcData {
+const int pwrLim1 = 7000, pwrLim2 = pwrLim1 + 1000;
+int doneT;
 Point center;
-Point _target;
+Point _target, _start;
 double _rMag;
 int _rotationDirection;
 int wait;
 void init(Point start, Point target, double rMag, int rotationDirection) {
+    doneT = BIL;
+    _start = start;
     _target = target;
     _rotationDirection = rotationDirection;
     _rMag = rMag;
@@ -223,38 +227,50 @@ void init(Point start, Point target, double rMag, int rotationDirection) {
     center = midPt + polarToRect(altMag, altAngle);
 }
 // estimate the distance remaining for the drive
-double getArcLen() {
-	Point pos = odometry.getPos();
-    Point deltaPos = _target - pos;
-    Point midPt((pos.x + _target.x) / 2.0, (pos.y + _target.y) / 2.0);
-    double altAngle = atan2(deltaPos.y, deltaPos.x) + (PI / 2) * _rotationDirection;
-    double altMag = sqrt(clamp(pow(_rMag, 2) - pow(deltaPos.mag() / 2, 2), 0.0, 999999999.9));
-    return 2 * acos(clamp(altMag / _rMag, -1.0, 1.0)) * _rMag;
+// assumses you would never arc more than about 7*PI / 4
+double getArcPos() {
+    Point pos = odometry.getPos() - center;
+    Point tgt = _target - center;
+    Point st = _start - center;
+    double a = acos(clamp((pos * tgt) / (pos.mag() * tgt.mag()), -1.0, 1.0));
+    if (_rotationDirection == 1) {
+        if (pos < st && a > PI / 2) a = 2 * PI - a;
+    } else {
+        if (pos > st && a > PI / 2) a = 2 * PI - a;
+    }
+    return a * pos.mag();
 }
 }  // namespace arcData
+
+void printArcData() {
+    printf("%.1f DL%d DR%d drive %3.1f/%3.1f turn %2.1f/%2.1f R %.1f/%.1f x %3.1f/%3.1f y %3.1f/%3.1f\n", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, (odometry.getPos() - arcData::center).mag(), arcData::_rMag, odometry.getX(), arcData::_target.x, odometry.getY(), arcData::_target.y);
+    std::cout << std::endl;
+}
 void pidDriveArcInit(Point start, Point target, double rMag, int rotationDirection, int wait) {
     drivePid.doneTime = BIL;
     turnPid.doneTime = BIL;
     arcData::init(start, target, rMag, rotationDirection);
     arcData::wait = wait;
 }
-double sigmoid(double x, double stretch) {
-	return 1.0 / (1.0 + exp(-x * stretch));
-}
 bool pidDriveArc() {
     using arcData::_rMag;
     using arcData::_rotationDirection;
+    using arcData::_start;
+    using arcData::_target;
     using arcData::center;
+    using arcData::doneT;
+    using arcData::pwrLim1;
+    using arcData::pwrLim2;
     using arcData::wait;
     Point pos = odometry.getPos();
-    double arcLen = arcData::getArcLen();
+    double arcPos = arcData::getArcPos();
 
     Point rVector = center - pos;
-    Point targetVector = rVector.rotate(-1 * _rotationDirection);
+    Point targetVector = rVector.rotate(-_rotationDirection);
     Point orientationVector(cos(odometry.getA()), sin(odometry.getA()));
     double x = (targetVector * orientationVector) / (targetVector.mag() * orientationVector.mag());
     double errAngle = acos(clamp(x, -1.0, 1.0));
-
+    double errRadius = rVector.mag() - _rMag;
     // allow for driving backwards and allow for negative errAngle values
     int driveDir = 1;
     if (errAngle > PI / 2) {
@@ -263,21 +279,35 @@ bool pidDriveArc() {
     }
     if (orientationVector < targetVector) errAngle *= -driveDir;
     if (orientationVector > targetVector) errAngle *= driveDir;
-
+    printf("center: %.1f,%.1f pos: %.1f,%.1ftarget:%.1f,%.1f\n", center.x, center.y, pos.x, pos.y, arcData::_target.x, arcData::_target.y);
     // error correction
-    turnPid.sensVal = errAngle;
-    turnPid.target = 0;
-    drivePid.sensVal *= arcLen * cos(errAngle);
+    curvePid.sensVal = errAngle /*- clamp(errRadius * _rotationDirection * (PI / 6), -PI / 3, PI / 3)*/;
+    curvePid.target = 0;
+    Point rVec = pos - center, tgt = _target - center;
+    if (_rotationDirection == 1) {
+        if (rVec > tgt) arcPos *= -1;
+    } else {
+        if (rVec < tgt) arcPos *= -1;
+    }
+    if (fabs(arcPos) > rVec.mag() * PI) arcPos *= -1;
+    drivePid.sensVal = arcPos * fabs(cos(errAngle));
     drivePid.target = 0;
-    int drivePwr = clamp((int)-drivePid.update(), -8000, 8000);
-    int turnPwr = clamp((int)turnPid.update(), -8000, 8000);
-    if (fabs(arcLen) < 4) turnPwr = 0;
-    double errRadius = clamp(rVector.mag() - _rMag, -5.0, 5.0);
-    double inflator = 2.0 * sigmoid(errRadius, 0.2);
-	double curveFactor = sigmoid(_rMag, 0.005);
-    setDL((drivePwr * driveDir - turnPwr) * inflator);
-    setDR((drivePwr * driveDir + turnPwr) * (2.0 - inflator));
+    double drivePwr = -drivePid.update();
+    int turnPwr = clamp((int)curvePid.update(), -pwrLim1, pwrLim1);
+    double pwrFactor = clamp(1.0 / (1.0 + fabs(errRadius) / 2.0) * 1.0 / (1.0 + fabs(errAngle) * 6), 0.5, 1.0);
+    double curveFac = clamp(2.0 / (1.0 + exp(-_rMag / 7.0)) - 1.0, 0.0, 1.0);
+    double dlOut = clamp(drivePwr * pwrFactor * driveDir, (double)-pwrLim1, (double)pwrLim1);
+    double drOut = clamp(drivePwr * pwrFactor * driveDir, (double)-pwrLim1, (double)pwrLim1);
+    if (_rotationDirection * driveDir == -1) {
+        dlOut *= 1.0 / curveFac;
+        drOut *= curveFac;
+    } else {
+        dlOut *= curveFac;
+        drOut *= 1.0 / curveFac;
+    }
+    setDL(clamp((int)dlOut, -pwrLim2, pwrLim2) - turnPwr);
+    setDR(clamp((int)drOut, -pwrLim2, pwrLim2) + turnPwr);
 
-    if (drivePid.doneTime + wait < millis()) return true;
-    return false;
+    if (fabs(arcPos) < 2.5 && doneT > millis()) doneT = millis();
+    return doneT + wait < millis();
 }

@@ -34,7 +34,7 @@ pros::ADILineSensor* ballSens;
 
 //----------- Constants ----------------
 const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1380, drfbMinPos = 1370, drfbPos1 = 2705, drfbPos2 = 3175, drfbMinClaw = 1800, drfb18max = 1895;
-const int dblClickTime = 450, claw180 = 1350, clawPos0 = 355, clawPos1 = 3595;  // 3354
+const int dblClickTime = 450, claw180 = 1350, clawPos0 = 355, clawPos1 = 3595;
 const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
 const int BIL = 1000000000, MIL = 1000000;
@@ -140,7 +140,7 @@ void pidDrfb() { pidDrfb(drfbPid.target, 9999999); }
 void setClaw(int n) {
     if (getDrfb() < drfbMinClaw || (getClaw() > clawPos1 && n > 0) || (getClaw() < clawPos0 && n < 0)) n = 0;
     n = clawSaver.getPwr(n, mtr11.get_position());
-	n = clawSlew.update(n);
+    n = clawSlew.update(n);
     mtr11.move_voltage(n);
 }
 double getClaw() { return clawPot->get_value(); }
@@ -269,7 +269,7 @@ void setupAuton() {
     clawPid.ki = 0.0;
     clawPid.iActiveZone = 300;
     clawPid.unwind = 0;
-	clawSlew.slewRate = 200;
+    clawSlew.slewRate = 200;
 
     drfbSlew.slewRate = 99999;
     setDrfbParams(true);
@@ -287,6 +287,11 @@ void setupAuton() {
     drivePid.DONE_ZONE = 3.0;
     turnPid.kp = 15000;
     turnPid.DONE_ZONE = PI / 20;
+
+    curvePid.kp = 25000;
+    curvePid.ki = 2000;
+    curvePid.iActiveZone = PI / 18;
+    curvePid.maxIntegral = 5000;
 
     drfbPid.target = drfbPos0;
     clawPid.target = clawPos0;

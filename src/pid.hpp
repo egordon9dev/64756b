@@ -42,8 +42,9 @@ bool pidTurn(const double angle, const int wait);
 bool pidTurnSweep(double tL, double tR, int wait);
 void pidDriveArcInit(Point start, Point target, double rMag, int rotationDirection, int wait);
 bool pidDriveArc();
+void printArcData();
 
-extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, DLTurnPid, DRTurnPid, drivePid, turnPid;
+extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, DLTurnPid, DRTurnPid, drivePid, turnPid, curvePid;
 extern Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew;
 extern Odometry_t odometry;
 extern int g_pidTurnLimit;
