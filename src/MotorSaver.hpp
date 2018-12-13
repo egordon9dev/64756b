@@ -17,6 +17,7 @@ class MotorSaver {
     int getMaxSpeed();
     int getMaxPwr();
     bool isFaster(double d);
+   bool isPwr(double d);
 };
 
 #endif
