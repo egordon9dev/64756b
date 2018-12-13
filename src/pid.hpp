@@ -44,7 +44,7 @@ void pidDriveArcInit(Point start, Point target, double rMag, int rotationDirecti
 bool pidDriveArc();
 
 extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, DLTurnPid, DRTurnPid, drivePid, turnPid;
-extern Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew;
+extern Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew;
 extern Odometry_t odometry;
 extern int g_pidTurnLimit;
 

@@ -4,7 +4,7 @@
 using pros::millis;
 using std::cout;
 Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, DLTurnPid, DRTurnPid, drivePid, turnPid;
-Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew;
+Slew_t flywheelSlew, drfbSlew, DLSlew, DRSlew, clawSlew;
 Odometry_t odometry(6.982698);
 
 Slew_t::Slew_t() {

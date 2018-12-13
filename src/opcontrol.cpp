@@ -52,21 +52,22 @@ void opcontrol() {
     bool clawFlipped = false, clawInit = false;
     IntakeState intakeState = IntakeState::NONE;
     int driveDir = 1;
-    if (1) {
+    if (0) {
         setupAuton();
         odometry.setA(-PI / 2);
-        auton2(false);
+        //auton2(false);
         while (1) {
             odometry.update();
             // pros::lcd::print(0, "x %f", odometry.getX());
             // pros::lcd::print(1, "y %f", odometry.getY());
             // pros::lcd::print(2, "a %f", odometry.getA());
             // printDrivePidValues();
-            printf("%d\n", (int)getDrfb());
+            printf("claw %d     drfb %d\n", (int)getClaw(), (int)getDrfb());
             stopMotors();
             delay(50);
         }
     }
+	setDrfbParams(false);
     while (true) {
         dt = pros::millis() - prevT;
         prevT = pros::millis();
@@ -150,7 +151,6 @@ void opcontrol() {
                         setDrfbParams(true);
                     }
                 }
-                if (getDrfb() > drfbMinClaw) setDrfbParams(false);
                 clawPid.target = clawFlipped ? clawPos1 : clawPos0;
                 pidClaw(clawPid.target, 999999);
             } else {

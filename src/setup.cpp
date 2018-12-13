@@ -21,7 +21,7 @@ pros::Motor mtr12(1);
 MotorSaver dlSaver(40);
 MotorSaver drSaver(40);
 MotorSaver drfbSaver(40);
-MotorSaver clawSaver(40);
+MotorSaver clawSaver(65);
 MotorSaver intakeSaver(40);
 MotorSaver flySaver(40);
 
@@ -33,8 +33,8 @@ pros::ADIPotentiometer* clawPot;
 pros::ADILineSensor* ballSens;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1380, drfbMinPos = 1370, drfbPos1 = 2655, drfbPos2 = 3175, drfbMinClaw = 1800, drfb18max = 1895;
-const int dblClickTime = 450, claw180 = 1350, clawPos0 = 338, clawPos1 = clawPos0 + 3354;  // 3354
+const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1380, drfbMinPos = 1370, drfbPos1 = 2705, drfbPos2 = 3175, drfbMinClaw = 1800, drfb18max = 1895;
+const int dblClickTime = 450, claw180 = 1350, clawPos0 = 355, clawPos1 = 3595;  // 3354
 const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
 const int BIL = 1000000000, MIL = 1000000;
@@ -140,6 +140,7 @@ void pidDrfb() { pidDrfb(drfbPid.target, 9999999); }
 void setClaw(int n) {
     if (getDrfb() < drfbMinClaw || (getClaw() > clawPos1 && n > 0) || (getClaw() < clawPos0 && n < 0)) n = 0;
     n = clawSaver.getPwr(n, mtr11.get_position());
+	n = clawSlew.update(n);
     mtr11.move_voltage(n);
 }
 double getClaw() { return clawPot->get_value(); }
@@ -264,10 +265,11 @@ void setupAuton() {
 
     flywheelPid.DONE_ZONE = 0.2;
 
-    clawPid.kp = 7.0;
-    clawPid.ki = 0.01;
+    clawPid.kp = 10.0;
+    clawPid.ki = 0.0;
     clawPid.iActiveZone = 300;
     clawPid.unwind = 0;
+	clawSlew.slewRate = 200;
 
     drfbSlew.slewRate = 99999;
     setDrfbParams(true);
