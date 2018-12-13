@@ -42,3 +42,4 @@ int MotorSaver::getSumPwr() { return sumPwr; }
 int MotorSaver::getMaxSpeed() { return maxSpeed; }
 int MotorSaver::getMaxPwr() { return maxPwr; }
 bool MotorSaver::isFaster(double d) { return sumSpeed > maxSpeed * d; }
+bool MotorSaver::isPwr(double d) { return sumPwr > maxPwr * d; }
