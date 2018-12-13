@@ -42,6 +42,7 @@ bool pidTurn(const double angle, const int wait);
 bool pidTurnSweep(double tL, double tR, int wait);
 void pidDriveArcInit(Point start, Point target, double rMag, int rotationDirection, int wait);
 bool pidDriveArc();
+void pidDriveArcBias(int b);
 void printArcData();
 
 extern Pid_t flywheelPid, clawPid, drfbPid, DLPid, DRPid, DLTurnPid, DRTurnPid, drivePid, turnPid, curvePid;

@@ -55,6 +55,7 @@ void opcontrol() {
     if (1) {
         odometry.setA(-PI / 2);
         setupAuton();
+		auton2(false);
         pidDriveArcInit(Point(0, 0), Point(-20, 70), 10, 1, 1000);
         while (1) {
             for (int i = 0; i < 5; i++) {

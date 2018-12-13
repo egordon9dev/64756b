@@ -206,19 +206,21 @@ bool pidTurnSweep(double tL, double tR, int wait) {
     return false;
 }
 namespace arcData {
-const int pwrLim1 = 7000, pwrLim2 = pwrLim1 + 1000;
+const int pwrLim1 = 8000, pwrLim2 = pwrLim1 + 1000;
 int doneT;
 Point center;
 Point _target, _start;
 double _rMag;
 int _rotationDirection;
 int wait;
+int bias;
 void init(Point start, Point target, double rMag, int rotationDirection) {
     doneT = BIL;
     _start = start;
     _target = target;
     _rotationDirection = rotationDirection;
     _rMag = rMag;
+	bias = 0;
 
     Point deltaPos = target - start;
     Point midPt((start.x + target.x) / 2.0, (start.y + target.y) / 2.0);
@@ -251,6 +253,9 @@ void pidDriveArcInit(Point start, Point target, double rMag, int rotationDirecti
     turnPid.doneTime = BIL;
     arcData::init(start, target, rMag, rotationDirection);
     arcData::wait = wait;
+}
+void pidDriveArcBias(int b) {
+	arcData::bias = b;
 }
 bool pidDriveArc() {
     using arcData::_rMag;
@@ -305,6 +310,8 @@ bool pidDriveArc() {
         dlOut *= curveFac;
         drOut *= 1.0 / curveFac;
     }
+	dlOut -= _rotationDirection * driveDir * arcData::bias;
+	drOut += _rotationDirection * driveDir * arcData::bias;
     setDL(clamp((int)dlOut, -pwrLim2, pwrLim2) - turnPwr);
     setDR(clamp((int)drOut, -pwrLim2, pwrLim2) + turnPwr);
 

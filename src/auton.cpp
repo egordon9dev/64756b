@@ -215,6 +215,7 @@ void auton2(bool leftSide) {
     drivePid.doneTime = BIL;
     turnPid.doneTime = BIL;
     const int autonT0 = millis();
+	bool printing = true;
     while (!ctlr.get_digital(DIGITAL_B)) {
         if (i != prevI) { prevITime = millis(); }
         prevI = i;
@@ -231,23 +232,23 @@ void auton2(bool leftSide) {
             if (k == 0) {
                 setDrfb(12000);
                 drfbPidRunning = false;
-                if (getDrfb() > drfbMinClaw - 50) k++;
+                if (getDrfb() > drfb18Max && millis() - autonT0 > 300) k++;
             } else {  // lower lift
-                if (millis() - autonT0 > 300) {
-                    drfbPidRunning = true;
-                    drfbPid.target = drfbPos0;
-                } else {
-                    setDrfb(0);
-                }
+				drfbPidRunning = true;
+				drfbPid.target = drfbPos0;
             }
             setFlywheel(0);
             setClaw(0);
             is = IntakeState::FRONT;
-            if (pidDrive()) { i++; pidDriveArcInit(Point(0, 45), Point(24 * sideSign, 45), 15, sideSign, 1000); }
+            if (pidDrive()) {
+				i++; 
+                pidDriveArcInit(Point(0, 45), Point(22 * sideSign, 50), 5, sideSign, 1000);
+				pidDriveArcBias(1500);
+			}
         } /*else if (i == j++) {  // back away from cap 1
             flywheelPid.target = 2.7;
             drfbPidRunning = true;
-			if(getDrfb() > drfb18max) {
+			if(getDrfb() > drfb18Max) {
 				drfbPid.target = drfbPos0;
 				clawPidRunning = true;
 			} else {
@@ -266,19 +267,30 @@ void auton2(bool leftSide) {
                 pidDriveArcInit(Point(0, 35), Point(24 * sideSign, 45), 15, sideSign, 6000);
                 i++;
             }
-        } */else if (i == j++) {  // arc twd cap 2
+        } */
+		
+		else if (i == j++) {  // arc twd cap 2
+			printing = false;
+			printArcData();
             if (pidDriveArc()) {
                 drfbPid.target = 2900;
                 drfbPidRunning = true;
-                pidDriveArcInit(Point(24 * sideSign, 45), Point(8 * sideSign, 4), 40, -sideSign, driveT);
+                pidDriveArcInit(Point(22 * sideSign, 50), Point(8 * sideSign, 9), 40, -sideSign, driveT);
+				t0 = millis();
                 i++;
             }
+        } else if (i == j++) {
+			setDL(0);
+			setDR(0);
+			if(millis() - t0 > 300) {
+				i++;
+			}
         } else if (i == j++) {
             if (pidDriveArc()) {  // arc twd pipe
                 t0 = millis();
                 i++;
             }
-        } /*else if (i == j++) {
+        } else if (i == j++) {
             if (leftSide) {
                 setDL(8000);
                 setDR(5000);
@@ -287,17 +299,17 @@ void auton2(bool leftSide) {
                 setDR(8000);
             }
             if (!dlSaver.isFaster(0.1) && !drSaver.isFaster(0.1) && dlSaver.isPwr(0.25) && drSaver.isPwr(0.25)) {
-                drfbPid.target = drfbPos1;
                 i++;
             }
         } else if (i == j++) {
-            setDL(0);
-            setDR(0);
-            if (getDrfb() < drfbPos1 + 80) { i++; }
-        } else if (i == j++) {
-            setDRFB(-12000);
+            setDrfb(-12000);
             drfbPidRunning = false;
-            if (getDrfb() > drfbMinClaw) clawPid.target = claw180;
+            if (getDrfb() > drfbMinClaw) clawPid.target = clawPos0;
+			if(getDrfb() < drfbPos1+50) {
+				drfbPidRunning = true;
+				drfbPid.target = drfbPos1;
+			}
+		} /*else if (i == j++) {
             if (pidDrive()) {
                 drivePid.doneTime = BIL;
                 turnPid.doneTime = BIL;
@@ -391,7 +403,7 @@ void auton2(bool leftSide) {
         if (i != prevI) {
             for (int w = 0; w < 15; w++) cout << endl;
         }
-        if (millis() - lastT > 100) {
+        if (millis() - lastT > 100 && printing) {
             printf("%d", i);
             printf(": ");
             printDrivePidValues();

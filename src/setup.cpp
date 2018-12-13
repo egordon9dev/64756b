@@ -33,7 +33,7 @@ pros::ADIPotentiometer* clawPot;
 pros::ADILineSensor* ballSens;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1380, drfbMinPos = 1370, drfbPos1 = 2705, drfbPos2 = 3175, drfbMinClaw = 1800, drfb18max = 1895;
+const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1380, drfbMinPos = 1370, drfbPos1 = 2705, drfbPos2 = 3175, drfbMinClaw = 1800, drfb18Max = 1895;
 const int dblClickTime = 450, claw180 = 1350, clawPos0 = 355, clawPos1 = 3595;
 const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
@@ -294,7 +294,7 @@ void setupAuton() {
     curvePid.maxIntegral = 5000;
 
     drfbPid.target = drfbPos0;
-    clawPid.target = clawPos0;
+    clawPid.target = clawPos1;
     flywheelPid.target = 0;
 
     drfbPot = new ADIPotentiometer(2);
