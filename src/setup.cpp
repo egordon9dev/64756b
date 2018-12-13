@@ -18,8 +18,8 @@ pros::Motor mtr12(1);
 // bad ports: 11, 12, 5
 
 // motor savers
-MotorSaver dlSaver(40);
-MotorSaver drSaver(40);
+MotorSaver dlSaver(22);
+MotorSaver drSaver(22);
 MotorSaver drfbSaver(40);
 MotorSaver clawSaver(65);
 MotorSaver intakeSaver(40);
@@ -33,7 +33,7 @@ pros::ADIPotentiometer* clawPot;
 pros::ADILineSensor* ballSens;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1380, drfbMinPos = 1370, drfbPos1 = 2705, drfbPos2 = 3175, drfbMinClaw = 1800, drfb18Max = 1895;
+const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1380, drfbMinPos = 1370, drfbPos1 = 2730, drfbPos2 = 3230, drfbMinClaw = 1800, drfb18Max = 1895;
 const int dblClickTime = 450, claw180 = 1350, clawPos0 = 355, clawPos1 = 3595;
 const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
