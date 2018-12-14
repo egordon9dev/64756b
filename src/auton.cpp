@@ -196,8 +196,6 @@ using std::endl; /*
 void auton2(bool leftSide) {
     setupAuton();
     int sideSign = leftSide ? 1 : -1;
-    odometry.setXAxisDir(sideSign);
-    // odometry.setRotationDir(sideSign);
     int i = 0;
     int k = 0;
     odometry.setA(-PI / 2);
@@ -355,9 +353,6 @@ void auton2(bool leftSide) {
         pidFlywheel();
         if (drfbPidRunning) pidDrfb();
         setIntake(is);
-        if (i != prevI) {
-            for (int w = 0; w < 15; w++) cout << endl;
-        }
         if (millis() - lastT > 100 && printing) {
 			printf("t%d ", millis()-autonT0);
             printDrivePidValues();
@@ -367,8 +362,58 @@ void auton2(bool leftSide) {
     }
     stopMotors();
 }
-void auton3() {
-	
+void auton3(bool leftSide) {
+	setupAuton();
+    int sideSign = leftSide ? 1 : -1;
+    int i = 0;
+    int k = 0;
+    odometry.setA(-PI / 2);
+    odometry.setX(0);
+    odometry.setY(-4);
+    double targetAngle = -PI / 2;
+    const int driveT = 800;
+    IntakeState is = IntakeState::NONE;
+    double arcRadius;
+    int t0 = BIL;
+    int prevI = 0;
+    int lastT = 0;
+    bool drfbPidRunning = false, clawPidRunning = false;
+    int prevITime = millis();
+    int timeBetweenI = 4000;
+    drivePid.doneTime = BIL;
+    turnPid.doneTime = BIL;
+    const int autonT0 = millis();
+    bool printing = true;
+    while (!ctlr.get_digital(DIGITAL_B)) {
+		if(i != prevI) printf("\n--------------------------------------------\n||||||||>     I has been incremented    <||||||||||\n--------------------------------------------\n\n");
+		if(millis() - autonT0 > 1500000 && i != 99999) i = 12345;
+        if (i != prevI) { prevITime = millis(); }
+        prevI = i;
+        if (millis() - prevITime > timeBetweenI) break;
+        int j = 0;
+        odometry.update();
+        if (i == j++) {
+		pidDriveInit(Point(0,45), driveT);
+		i++;
+	if (i == j++) {
+		if(getDrfb() > drfb18Max-50 && millis() - t0 > 300) {
+			
+		}
+	}else {
+			printing = false;
+			if(i == 12345) printf("\n\nAUTON TIMEOUT\n");
+			i = 99999;
+            stopMotors();
+        }
+        if (clawPidRunning) pidClaw();
+        pidFlywheel();
+        if (drfbPidRunning) pidDrfb();
+        setIntake(is);
+        if (millis() - lastT > 100 && printing) {
+		printf("t%d ", millis()-autonT0);
+            printDrivePidValues();
+            lastT = millis();
+	}
 }
 void autonomous() {
     setupAuton();
