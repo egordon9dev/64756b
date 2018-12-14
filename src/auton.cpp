@@ -245,7 +245,7 @@ void auton2(bool leftSide) {
             is = IntakeState::FRONT;
             if (pidDrive()) {
                 i++;
-                pidFollowArcInit(Point(0, 45), Point(12 * sideSign, 45), 5, sideSign, 1000);
+                pidFollowArcInit(Point(0, 45), Point(14 * sideSign, 45), 5, sideSign, 1000);
             }
         } else if (i == j++) {  // arc twd cap 2
 			printf("arc twd cap 2 ");
@@ -253,12 +253,12 @@ void auton2(bool leftSide) {
             printArcData();
             if (pidDriveArc()) {
                 printing = true;
-				pidDriveInit(Point(12*sideSign, 51), driveT);
+				pidDriveInit(Point(14*sideSign, 51), driveT);
                 i++;
             }
 		} else if(i == j++) {
 			printf("drv twd cap 2");
-			if(pidDrive) {
+			if(pidDrive()) {
 				t0 = millis();
 				i++;
 			}
@@ -271,7 +271,7 @@ void auton2(bool leftSide) {
             if (getDrfb() > drfb18Max) {
 				drfbPidRunning = true;
                 drfbPid.target = drfbPos1 + 250;
-                pidDriveArcInit(Point(12 * sideSign, 51), Point(-2 * sideSign, 21), 60, -sideSign, driveT);
+                pidDriveArcInit(Point(14 * sideSign, 51), Point(-2 * sideSign, 21), 60, -sideSign, driveT);
                 i++;
             }
         } else if (i == j++) {
@@ -366,6 +366,9 @@ void auton2(bool leftSide) {
         delay(10);
     }
     stopMotors();
+}
+void auton3() {
+	
 }
 void autonomous() {
     setupAuton();
