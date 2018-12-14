@@ -54,7 +54,7 @@ void opcontrol() {
     int driveDir = 1;
 	int nBalls = 0;
 	int intakeT0 = BIL;
-    if (0) {
+    if (1) {
         odometry.setA(-PI / 2);
         setupAuton();
 		auton2(false);

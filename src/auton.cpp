@@ -286,7 +286,7 @@ void auton2(bool leftSide) {
 				i++;
 			}
         } else if (i == j++) {
-	if (getDrfb() > drfbMinClaw) clawPid.target = clawPos0;
+			if (getDrfb() > drfbMinClaw) clawPid.target = clawPos0;
             if (pidDriveArc()) {  // arc twd pipe
                 t0 = BIL;
                 i++;
@@ -299,115 +299,16 @@ void auton2(bool leftSide) {
                 setDL(5000);
                 setDR(8000);
             }
-<<<<<<< Updated upstream
             if (!dlSaver.isFaster(0.1) && !drSaver.isFaster(0.1) && (dlSaver.isPwr(0.25) || drSaver.isPwr(0.25))) {
-		if(t0 > millis()) t0 = millis
-                if(millis() - t0 > 500) {
-			i++;
-			odometry.setX(0);
-			odometry.setY(0);
-			odometry.setA(leftSide ? 0 : PI);
-			pidDriveInit(Point(sideSign * 3, 0)
-		}
-=======
-            if (!dlSaver.isFaster(0.1) && !drSaver.isFaster(0.1) && dlSaver.isPwr(0.25) && drSaver.isPwr(0.25)) {
+				if(t0 > (int)millis()) t0 = millis();
+				if(millis() - t0 > 500) {
+				i++;
 				odometry.setX(0);
-                i++;
-            }
-        } else if (i == j++) {
-            setDrfb(-12000);
-            drfbPidRunning = false;
-            if (getDrfb() > drfbMinClaw) clawPid.target = clawPos0;
-			if(getDrfb() < drfbPos1+50) {
-				drfbPidRunning = true;
-				drfbPid.target = drfbPos1;
-				
-				pidDriveInit(Point(
+				odometry.setY(0);
+				odometry.setA(leftSide ? 0 : PI);
+				//pidDriveInit(Point(sideSign * 3, 0);
+				}
 			}
-		} else if (i == j++) {
-            if (pidDrive()) {
-                drivePid.doneTime = BIL;
-                turnPid.doneTime = BIL;
-                t0 = millis();
-                i++;
-            }
-        } else if (i == j++) {
-            if (leftSide) {
-                setDL(4000);
-                setDR(6000);
-            } else {
-                setDR(4000);
-                setDL(6000);
-            }
-            if (millis() - t0 > 1000) {
-                i++;
-                t0 = millis();
-            }
-        } else if (i == j++) {
-            if (millis() - t0 < 300) {
-                setDL(-8000);
-                setDR(-8000);
-            } else {
-                setDL(0);
-                setDR(0);
-            }
-            drfbPidRunning = false;
-            setDrfb(12000);
-            if (getDrfb() > 3000) {
-                i++;
-                t0 = millis();
-                drfbPid.target = 3000;
-                drfbPidRunning = true;
-            }
-        } else if (i == j++) {
-            setDL(6000);
-            setDR(9000);
-            if (millis() - t0 > 1200) {
-                drivePid.doneTime = BIL;
-                turnPid.doneTime = BIL;
-                odometry.setX(0);
-                odometry.setX(0);
-                odometry.setA(-PI / 2);
-                targetPos.x = 0;
-                targetPos.y = 5;
-                i++;
-            }
-        } else if (i == j++) {
-            if (pidDrive(targetPos, driveT)) {
-                drivePid.doneTime = BIL;
-                turnPid.doneTime = BIL;
-                i++;
-            }
-        } else if (i == j++) {
-            drfbPidRunning = false;
-            setDrfb(-12000);
-            if (getDrfb() < drfbPos1 + 100) {
-                targetPos.y = 18;
-                i++;
-            }
-        } else if (i == j++) {
-            drfbPidRunning = true;
-            drfbPid.target = drfbPos1;
-            if (pidDrive(targetPos, driveT)) {
-                setDL(0);
-                setDR(0);
-                drfbPid.doneTime = BIL;
-                drivePid.doneTime = BIL;
-                turnPid.doneTime = BIL;
-                targetPos.y += 12;
-                i++;
-            }
-        } else if (i == j++) {
-            drfbPidRunning = false;
-            if (getDrfb() > drfbPos0 + 80) {
-                setDrfb(-12000);
-                setDL(0);
-                setDR(0);
-            } else {
-                setDrfb(-2000);
-                pidDrive(targetPos, 999999);
->>>>>>> Stashed changes
-            }
         } else {
             stopMotors();
         }
