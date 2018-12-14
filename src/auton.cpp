@@ -243,7 +243,7 @@ void auton2(bool leftSide) {
             is = IntakeState::FRONT;
             if (pidDrive()) {
                 i++;
-                pidFollowArcInit(Point(0, 45), Point(14 * sideSign, 45), 5, sideSign, 1000);
+                pidFollowArcInit(Point(0, 45), Point(9 * sideSign, 45), 5, sideSign, 0);
             }
         } else if (i == j++) {  // arc twd cap 2
 			printf("arc twd cap 2 ");
@@ -251,7 +251,9 @@ void auton2(bool leftSide) {
             printArcData();
             if (pidDriveArc()) {
                 printing = true;
-				pidDriveInit(Point(14*sideSign, 51), driveT);
+				setDL(0);
+				setDR(0);
+				pidDriveInit(Point(9*sideSign, 54), driveT);
                 i++;
             }
 		} else if(i == j++) {
@@ -269,7 +271,7 @@ void auton2(bool leftSide) {
             if (getDrfb() > drfb18Max) {
 				drfbPidRunning = true;
                 drfbPid.target = drfbPos1 + 250;
-                pidDriveArcInit(Point(14 * sideSign, 51), Point(-2 * sideSign, 21), 60, -sideSign, driveT);
+                pidDriveArcInit(Point(9 * sideSign, 51), Point(-2 * sideSign, 21), 60, -sideSign, driveT);
                 i++;
             }
         } else if (i == j++) {
@@ -311,13 +313,13 @@ void auton2(bool leftSide) {
                 drfbPid.target = drfbPos1;
                 drfbPidRunning = true;
                 t0 = millis();
-                pidFollowArcInit(Point(-sideSign * 3, 0), Point(-sideSign * 20, -sideSign * 9), 50, sideSign, driveT);
+                pidFollowArcInit(Point(-sideSign * 3, 0), Point(-sideSign * 20, sideSign * 9), 50, sideSign, driveT);
                 i++;
             }
         } else if (i == j++) {  // s-curve to flywheel pos
             if (millis() - t0 > 300) drfbPid.target = drfbPos0;
             if (pidDriveArc()) {
-                pidDriveArcInit(Point(-sideSign * 20, -sideSign * 9), Point(-sideSign * 40, -sideSign * 18), 50, -sideSign, driveT);
+                pidDriveArcInit(Point(-sideSign * 20, -sideSign * 9), Point(-sideSign * 40, sideSign * 18), 50, -sideSign, driveT);
                 i++;
             }
         } else if (i == j++) {  // s-cruve to flywheel pos
@@ -387,32 +389,32 @@ void auton3(bool leftSide) {
     while (!ctlr.get_digital(DIGITAL_B)) {
 		if(i != prevI) printf("\n--------------------------------------------\n||||||||>     I has been incremented    <||||||||||\n--------------------------------------------\n\n");
 		if(millis() - autonT0 > 1500000 && i != 99999) i = 12345;
-        if (i != prevI) { prevITime = millis(); }
+        if (i != prevI) prevITime = millis();
         prevI = i;
         if (millis() - prevITime > timeBetweenI) break;
         int j = 0;
         odometry.update();
         if (i == j++) {
-		pidDriveInit(Point(0,45), driveT);
-		i++;
-	if (i == j++) {
-		if(getDrfb() > drfb18Max-50 && millis() - t0 > 300) {
-			
-		}
-	}else {
+			pidDriveInit(Point(0,45), driveT);
+			i++;
+		} else if (i == j++) {
+			//if(getDrfb() > drfb18Max-50 && millis() - t0 > 300) {
+				
+		} else {
 			printing = false;
 			if(i == 12345) printf("\n\nAUTON TIMEOUT\n");
 			i = 99999;
-            stopMotors();
-        }
-        if (clawPidRunning) pidClaw();
-        pidFlywheel();
-        if (drfbPidRunning) pidDrfb();
-        setIntake(is);
-        if (millis() - lastT > 100 && printing) {
-		printf("t%d ", millis()-autonT0);
-            printDrivePidValues();
-            lastT = millis();
+			stopMotors();
+		}
+		if (clawPidRunning) pidClaw();
+		pidFlywheel();
+		if (drfbPidRunning) pidDrfb();
+		setIntake(is);
+		if (millis() - lastT > 100 && printing) {
+			printf("t%d ", millis()-autonT0);
+			printDrivePidValues();
+			lastT = millis();
+		}
 	}
 }
 void autonomous() {

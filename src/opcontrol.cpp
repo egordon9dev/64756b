@@ -61,6 +61,7 @@ void opcontrol() {
         auton2(false);
 		while(1) {
 			stopMotors();
+			printf("%d\n", getDrfb());
 			delay(50);
 		}
         while (0) {
