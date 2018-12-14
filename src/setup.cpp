@@ -34,7 +34,7 @@ pros::ADILineSensor* ballSens;
 
 //----------- Constants ----------------
 const int drfbMaxPos = 3882, drfbPos0 = /*1390*/ 1380, drfbMinPos = 1370, drfbPos1 = 2730, drfbPos2 = 3230, drfbMinClaw = 1800, drfb18Max = 1895;
-const int dblClickTime = 450, claw180 = 1350, clawPos0 = 355, clawPos1 = 3595;
+const int dblClickTime = 450, claw180 = 1350, clawPos0 = 561, clawPos1 = 3900;
 const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
 const int BIL = 1000000000, MIL = 1000000;
@@ -288,7 +288,7 @@ void setupAuton() {
     turnPid.kp = 15000;
     turnPid.DONE_ZONE = PI / 20;
 
-    curvePid.kp = 25000;
+    curvePid.kp = 100000;
     curvePid.ki = 2000;
     curvePid.iActiveZone = PI / 18;
     curvePid.maxIntegral = 5000;
@@ -296,9 +296,13 @@ void setupAuton() {
     drfbPid.target = drfbPos0;
     clawPid.target = clawPos1;
     flywheelPid.target = 0;
-
-    drfbPot = new ADIPotentiometer(2);
-    clawPot = new ADIPotentiometer(4);
-    ballSens = new ADILineSensor(8);
+    static bool first = true;
+    if (first) {
+        drfbPot = new ADIPotentiometer(2);
+        clawPot = new ADIPotentiometer(4);
+        ballSens = new ADILineSensor(8);
+        printf("\n\n\ndynamics inited.\n\n\n");
+    }
+    first = false;
 }
 void setupOpCtrl() { setDrfbParams(false); }

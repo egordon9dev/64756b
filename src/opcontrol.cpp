@@ -52,13 +52,13 @@ void opcontrol() {
     bool clawFlipped = false, clawInit = false;
     IntakeState intakeState = IntakeState::NONE;
     int driveDir = 1;
-	int nBalls = 0;
-	int intakeT0 = BIL;
+    int nBalls = 0;
+    int intakeT0 = BIL;
     if (1) {
-        odometry.setA(-PI / 2);
         setupAuton();
-		auton2(false);
-        pidDriveArcInit(Point(0, 0), Point(-20, 70), 10, 1, 1000);
+        setupAuton();
+        setupAuton();
+        auton2(true);
         while (1) {
             for (int i = 0; i < 5; i++) {
                 odometry.update();
@@ -174,12 +174,12 @@ void opcontrol() {
                 intakeState = IntakeState::NONE;
             } else if (curClicks[ctlrIdxL2] && !prevClicks[ctlrIdxL2]) {
                 intakeState = IntakeState::ALL;
-				intakeT0 = millis();
+                intakeT0 = millis();
             }
             if (isBallIn() && intakeState == IntakeState::ALL && millis() - intakeT0 > 500) {
-				intakeState = IntakeState::FRONT;
-				nBalls++;
-			}
+                intakeState = IntakeState::FRONT;
+                nBalls++;
+            }
         }
         if (flywheelPid.sensVal < 0.5 && intakeState == IntakeState::ALL) { intakeState = IntakeState::FRONT; }
         setIntake(intakeState);

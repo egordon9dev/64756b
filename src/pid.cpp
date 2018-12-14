@@ -206,7 +206,7 @@ bool pidTurnSweep(double tL, double tR, int wait) {
     return false;
 }
 namespace arcData {
-const int pwrLim1 = 8000, pwrLim2 = pwrLim1 + 1000;
+const int pwrLim1 = 7500, pwrLim2 = pwrLim1 + 1000;
 int doneT;
 Point center;
 Point _target, _start;
@@ -220,7 +220,7 @@ void init(Point start, Point target, double rMag, int rotationDirection) {
     _target = target;
     _rotationDirection = rotationDirection;
     _rMag = rMag;
-	bias = 0;
+    bias = 0;
 
     Point deltaPos = target - start;
     Point midPt((start.x + target.x) / 2.0, (start.y + target.y) / 2.0);
@@ -254,9 +254,7 @@ void pidDriveArcInit(Point start, Point target, double rMag, int rotationDirecti
     arcData::init(start, target, rMag, rotationDirection);
     arcData::wait = wait;
 }
-void pidDriveArcBias(int b) {
-	arcData::bias = b;
-}
+void pidDriveArcBias(int b) { arcData::bias = b; }
 bool pidDriveArc() {
     using arcData::_rMag;
     using arcData::_rotationDirection;
@@ -295,11 +293,11 @@ bool pidDriveArc() {
         if (rVec < tgt) arcPos *= -1;
     }
     if (fabs(arcPos) > rVec.mag() * PI) arcPos *= -1;
-    drivePid.sensVal = arcPos * fabs(cos(errAngle));
+    drivePid.sensVal = arcPos;
     drivePid.target = 0;
     double drivePwr = -drivePid.update();
     int turnPwr = clamp((int)curvePid.update(), -pwrLim1, pwrLim1);
-    double pwrFactor = clamp(1.0 / (1.0 + fabs(errRadius) / 2.0) * 1.0 / (1.0 + fabs(errAngle) * 6), 0.5, 1.0);
+    double pwrFactor = 1;  // clamp(1.0 / (1.0 + fabs(errRadius) / 2.0) * 1.0 / (1.0 + fabs(errAngle) * 6), 0.5, 1.0);
     double curveFac = clamp(2.0 / (1.0 + exp(-_rMag / 7.0)) - 1.0, 0.0, 1.0);
     double dlOut = clamp(drivePwr * pwrFactor * driveDir, (double)-pwrLim1, (double)pwrLim1);
     double drOut = clamp(drivePwr * pwrFactor * driveDir, (double)-pwrLim1, (double)pwrLim1);
@@ -310,8 +308,8 @@ bool pidDriveArc() {
         dlOut *= curveFac;
         drOut *= 1.0 / curveFac;
     }
-	dlOut -= _rotationDirection * driveDir * arcData::bias;
-	drOut += _rotationDirection * driveDir * arcData::bias;
+    dlOut -= _rotationDirection * driveDir * arcData::bias;
+    drOut += _rotationDirection * driveDir * arcData::bias;
     setDL(clamp((int)dlOut, -pwrLim2, pwrLim2) - turnPwr);
     setDR(clamp((int)drOut, -pwrLim2, pwrLim2) + turnPwr);
 

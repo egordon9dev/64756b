@@ -194,6 +194,7 @@ using std::endl; /*
      }
  }*/
 void auton2(bool leftSide) {
+    setupAuton();
     int sideSign = leftSide ? 1 : -1;
     odometry.setXAxisDir(sideSign);
     // odometry.setRotationDir(sideSign);
@@ -215,7 +216,7 @@ void auton2(bool leftSide) {
     drivePid.doneTime = BIL;
     turnPid.doneTime = BIL;
     const int autonT0 = millis();
-	bool printing = true;
+    bool printing = true;
     while (!ctlr.get_digital(DIGITAL_B)) {
         if (i != prevI) { prevITime = millis(); }
         prevI = i;
@@ -234,64 +235,40 @@ void auton2(bool leftSide) {
                 drfbPidRunning = false;
                 if (getDrfb() > drfb18Max && millis() - autonT0 > 300) k++;
             } else {  // lower lift
-				drfbPidRunning = true;
-				drfbPid.target = drfbPos0;
+                drfbPidRunning = true;
+                drfbPid.target = drfbPos0;
             }
-            setFlywheel(0);
+            flyWheelPid.target = 2.9;
             setClaw(0);
             is = IntakeState::FRONT;
             if (pidDrive()) {
-				i++; 
-                pidDriveArcInit(Point(0, 45), Point(22 * sideSign, 50), 5, sideSign, 1000);
-				pidDriveArcBias(1500);
-			}
-        } /*else if (i == j++) {  // back away from cap 1
-            flywheelPid.target = 2.7;
-            drfbPidRunning = true;
-			if(getDrfb() > drfb18Max) {
-				drfbPid.target = drfbPos0;
-				clawPidRunning = true;
-			} else {
-				setDrfb(12000);
-			}
-            if (getClaw() > (clawPos0 + clawPos1) * 0.5) {
-                clawPid.target = clawPos1;
-            } else {
-                clawPid.target = clawPos0;
-            }
-            setDL(12000);
-            setDR(12000);
-            if (odometry.getY() < 37) {
-				setDL(0);
-				setDR(0);
-                pidDriveArcInit(Point(0, 35), Point(24 * sideSign, 45), 15, sideSign, 6000);
                 i++;
+                pidDriveArcInit(Point(0, 45), Point(12 * sideSign, 48), 5, sideSign, 1000);
             }
-        } */
-		
-		else if (i == j++) {  // arc twd cap 2
-			printing = false;
-			printArcData();
+        } else if (i == j++) {  // arc twd cap 2
+            printing = false;
+            printArcData();
             if (pidDriveArc()) {
-                drfbPid.target = drfbPos1+250;
+                printing = true;
+                drfbPid.target = drfbPos1 + 250;
                 drfbPidRunning = true;
-                pidDriveArcInit(Point(22 * sideSign, 50), Point(8 * sideSign, 9), 30, -sideSign, driveT);
-				t0 = millis();
+                t0 = millis();
                 i++;
             }
         } else if (i == j++) {
-			setDL(0);
-			setDR(0);
-			if(millis() - t0 > 300) {
-				i++;
-			}
+            setDL(0);
+            setDR(0);
+            if (millis() - t0 > 300) {
+                pidDriveArcInit(Point(22 * sideSign, 50), Point(-2 * sideSign, 25), 60, -sideSign, driveT);
+                i++;
+            }
         } else if (i == j++) {
-			if (getDrfb() > drfbMinClaw) clawPid.target = clawPos0;
+            if (getDrfb() > drfbMinClaw) clawPid.target = clawPos0;
             if (pidDriveArc()) {  // arc twd pipe
                 t0 = BIL;
                 i++;
             }
-        } else if (i == j++) { // funnel drive
+        } else if (i == j++) {  // funnel drive
             if (leftSide) {
                 setDL(8000);
                 setDR(5000);
@@ -300,15 +277,45 @@ void auton2(bool leftSide) {
                 setDR(8000);
             }
             if (!dlSaver.isFaster(0.1) && !drSaver.isFaster(0.1) && (dlSaver.isPwr(0.25) || drSaver.isPwr(0.25))) {
-				if(t0 > (int)millis()) t0 = millis();
-				if(millis() - t0 > 500) {
-				i++;
-				odometry.setX(0);
-				odometry.setY(0);
-				odometry.setA(leftSide ? 0 : PI);
-				//pidDriveInit(Point(sideSign * 3, 0);
-				}
-			}
+                if (t0 > (int)millis()) t0 = millis();
+                if (millis() - t0 > 500) {
+                    i++;
+                    odometry.setX(0);
+                    odometry.setY(0);
+                    odometry.setA(leftSide ? 0 : PI);
+                    pidDriveInit(Point(-sideSign * 3, 0), driveT);
+                }
+            }
+        } else if (i == j++) {
+            if (pidDrive()) {
+                drfbPid.target = drfbPos0;
+                t0 = millis();
+                i++;
+            }
+        } else if (i == j++) {
+            drfbPidRunning = false;
+            setDrfb(-12000);
+            if (getDrfb() < drfbPos1 + 50 || millis() - t0 > 800) {
+                drfbPid.target = drfbPos1;
+                drfbPidRunning = true;
+                t0 = millis();
+                pidDriveArcInit(Point(-sideSign * 3, 0), Point(-sideSign * 20, -sideSign * 9), 50, sideSign, driveT);
+                i++;
+            }
+        } else if (i == j++) {  // s-curve to flywheel pos
+            if (millis() - t0 > 300) drfbPid.target = drfbPos0;
+            if (pidDriveArc()) {
+                pidDriveArcInit(Point(-sideSign * 20, -sideSign * 9), Point(-sideSign * 40, -sideSign * 18), 50, -sideSign, driveT);
+                i++;
+            }
+        } else if (i == j++) {  // s-cruve to flywheel pos
+            if (pidDriveArc()) {
+                t0 = millis();
+                i++;
+            }
+        } else if (i == j++) {  // shoot
+            is = IntakeState::ALL;
+            if (millis() - t0 > 1500) i++;
         } else {
             stopMotors();
         }
