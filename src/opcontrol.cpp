@@ -59,7 +59,11 @@ void opcontrol() {
         setupAuton();
         setupAuton();
         auton2(false);
-        while (1) {
+		while(1) {
+			stopMotors();
+			delay(50);
+		}
+        while (0) {
             for (int i = 0; i < 5; i++) {
                 odometry.update();
                 // pros::lcd::print(0, "x %f", odometry.getX());

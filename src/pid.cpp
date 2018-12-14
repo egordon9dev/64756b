@@ -214,6 +214,7 @@ double _rMag;
 int _rotationDirection;
 int wait;
 int bias;
+bool followArc;
 void init(Point start, Point target, double rMag, int rotationDirection) {
     doneT = BIL;
     _start = start;
@@ -221,6 +222,7 @@ void init(Point start, Point target, double rMag, int rotationDirection) {
     _rotationDirection = rotationDirection;
     _rMag = rMag;
     bias = 0;
+	followArc = false;
 
     Point deltaPos = target - start;
     Point midPt((start.x + target.x) / 2.0, (start.y + target.y) / 2.0);
@@ -254,6 +256,11 @@ void pidDriveArcInit(Point start, Point target, double rMag, int rotationDirecti
     arcData::init(start, target, rMag, rotationDirection);
     arcData::wait = wait;
 }
+
+void pidFollowArcInit(Point start, Point target, double rMag, int rotationDirection, int wait) {
+	pidDriveArcInit(start, target, rMag, rotationDirection, wait);
+	arcData::followArc = true;
+}
 void pidDriveArcBias(int b) { arcData::bias = b; }
 bool pidDriveArc() {
     using arcData::_rMag;
@@ -282,7 +289,7 @@ bool pidDriveArc() {
     }
     if (orientationVector < targetVector) errAngle *= -driveDir;
     if (orientationVector > targetVector) errAngle *= driveDir;
-    printf("center: %.1f,%.1f pos: %.1f,%.1ftarget:%.1f,%.1f\n", center.x, center.y, pos.x, pos.y, arcData::_target.x, arcData::_target.y);
+    //printf("center: %.1f,%.1f pos: %.1f,%.1ftarget:%.1f,%.1f\n", center.x, center.y, pos.x, pos.y, arcData::_target.x, arcData::_target.y);
     // error correction
     curvePid.sensVal = errAngle /*- clamp(errRadius * _rotationDirection * (PI / 6), -PI / 3, PI / 3)*/;
     curvePid.target = 0;
@@ -296,6 +303,7 @@ bool pidDriveArc() {
     drivePid.sensVal = arcPos;
     drivePid.target = 0;
     double drivePwr = -drivePid.update();
+	if(arcData::followArc) drivePwr = pwrLim1;
     int turnPwr = clamp((int)curvePid.update(), -pwrLim1, pwrLim1);
     double pwrFactor = 1;  // clamp(1.0 / (1.0 + fabs(errRadius) / 2.0) * 1.0 / (1.0 + fabs(errAngle) * 6), 0.5, 1.0);
     double curveFac = clamp(2.0 / (1.0 + exp(-_rMag / 7.0)) - 1.0, 0.0, 1.0);

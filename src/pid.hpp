@@ -41,6 +41,7 @@ bool pidDrive();
 bool pidTurn(const double angle, const int wait);
 bool pidTurnSweep(double tL, double tR, int wait);
 void pidDriveArcInit(Point start, Point target, double rMag, int rotationDirection, int wait);
+void pidFollowArcInit(Point start, Point target, double rMag, int rotationDirection, int wait);
 bool pidDriveArc();
 void pidDriveArcBias(int b);
 void printArcData();

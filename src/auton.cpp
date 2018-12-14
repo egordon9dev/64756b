@@ -218,6 +218,8 @@ void auton2(bool leftSide) {
     const int autonT0 = millis();
     bool printing = true;
     while (!ctlr.get_digital(DIGITAL_B)) {
+		if(i != prevI) printf("\n--------------------------------------------\n||||||||>     I has been incremented    <||||||||||\n--------------------------------------------\n\n");
+		if(millis() - autonT0 > 1500000 && i != 99999) i = 12345;
         if (i != prevI) { prevITime = millis(); }
         prevI = i;
         if (millis() - prevITime > timeBetweenI) break;
@@ -243,35 +245,44 @@ void auton2(bool leftSide) {
             is = IntakeState::FRONT;
             if (pidDrive()) {
                 i++;
-                pidDriveArcInit(Point(0, 45), Point(12 * sideSign, 51), 5, sideSign, 1000);
+                pidFollowArcInit(Point(0, 45), Point(12 * sideSign, 45), 5, sideSign, 1000);
             }
         } else if (i == j++) {  // arc twd cap 2
+			printf("arc twd cap 2 ");
             printing = false;
             printArcData();
             if (pidDriveArc()) {
                 printing = true;
-                drfbPid.target = drfbPos1 + 250;
-                drfbPidRunning = true;
-                t0 = millis();
+				pidDriveInit(Point(12*sideSign, 51), driveT);
                 i++;
             }
-        } else if (i == j++) {
+		} else if(i == j++) {
+			printf("drv twd cap 2");
+			if(pidDrive) {
+				t0 = millis();
+				i++;
+			}
+        } else if (i == j++) { // lift cap
+			printf("liftCap ");
             setDL(0);
             setDR(0);
 			drfbPidRunning = false;
 			setDrfb(12000);
-            if (millis() - t0 > 500) {
+            if (getDrfb() > drfb18Max) {
 				drfbPidRunning = true;
-                pidDriveArcInit(Point(22 * sideSign, 50), Point(-2 * sideSign, 25), 60, -sideSign, driveT);
+                drfbPid.target = drfbPos1 + 250;
+                pidDriveArcInit(Point(12 * sideSign, 51), Point(-2 * sideSign, 21), 60, -sideSign, driveT);
                 i++;
             }
         } else if (i == j++) {
+			printf("arc twd pipe ");
             if (getDrfb() > drfbMinClaw) clawPid.target = clawPos0;
             if (pidDriveArc()) {  // arc twd pipe
                 t0 = BIL;
                 i++;
             }
         } else if (i == j++) {  // funnel drive
+			printf("funnel drive ");
             if (leftSide) {
                 setDL(8000);
                 setDR(5000);
@@ -302,7 +313,7 @@ void auton2(bool leftSide) {
                 drfbPid.target = drfbPos1;
                 drfbPidRunning = true;
                 t0 = millis();
-                pidDriveArcInit(Point(-sideSign * 3, 0), Point(-sideSign * 20, -sideSign * 9), 50, sideSign, driveT);
+                pidFollowArcInit(Point(-sideSign * 3, 0), Point(-sideSign * 20, -sideSign * 9), 50, sideSign, driveT);
                 i++;
             }
         } else if (i == j++) {  // s-curve to flywheel pos
@@ -318,8 +329,26 @@ void auton2(bool leftSide) {
             }
         } else if (i == j++) {  // shoot
             is = IntakeState::ALL;
-            if (millis() - t0 > 1500) i++;
+            if (millis() - t0 > 1000) {
+				t0 = millis();
+				flywheelPid.target = 2.7;
+				i++;
+			}
+		} else if(i == j++) {
+			is = IntakeState::NONE;
+			if(millis() - t0 > 800) {
+				t0 = millis();
+				i++;
+			}
+		} else if(i == j++) {
+			is = IntakeState::ALL;
+			if(millis() - t0 > 1000) {
+				i++;
+			}
         } else {
+			printing = false;
+			if(i == 12345) printf("\n\nAUTON TIMEOUT\n");
+			i = 99999;
             stopMotors();
         }
         if (clawPidRunning) pidClaw();
@@ -330,8 +359,7 @@ void auton2(bool leftSide) {
             for (int w = 0; w < 15; w++) cout << endl;
         }
         if (millis() - lastT > 100 && printing) {
-            printf("%d", i);
-            printf(": ");
+			printf("t%d ", millis()-autonT0);
             printDrivePidValues();
             lastT = millis();
         }
