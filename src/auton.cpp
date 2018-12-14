@@ -238,12 +238,12 @@ void auton2(bool leftSide) {
                 drfbPidRunning = true;
                 drfbPid.target = drfbPos0;
             }
-            flyWheelPid.target = 2.9;
+            flywheelPid.target = 2.9;
             setClaw(0);
             is = IntakeState::FRONT;
             if (pidDrive()) {
                 i++;
-                pidDriveArcInit(Point(0, 45), Point(12 * sideSign, 48), 5, sideSign, 1000);
+                pidDriveArcInit(Point(0, 45), Point(12 * sideSign, 51), 5, sideSign, 1000);
             }
         } else if (i == j++) {  // arc twd cap 2
             printing = false;
@@ -258,7 +258,10 @@ void auton2(bool leftSide) {
         } else if (i == j++) {
             setDL(0);
             setDR(0);
-            if (millis() - t0 > 300) {
+			drfbPidRunning = false;
+			setDrfb(12000);
+            if (millis() - t0 > 500) {
+				drfbPidRunning = true;
                 pidDriveArcInit(Point(22 * sideSign, 50), Point(-2 * sideSign, 25), 60, -sideSign, driveT);
                 i++;
             }
@@ -278,7 +281,7 @@ void auton2(bool leftSide) {
             }
             if (!dlSaver.isFaster(0.1) && !drSaver.isFaster(0.1) && (dlSaver.isPwr(0.25) || drSaver.isPwr(0.25))) {
                 if (t0 > (int)millis()) t0 = millis();
-                if (millis() - t0 > 500) {
+                if (millis() - t0 > 300) {
                     i++;
                     odometry.setX(0);
                     odometry.setY(0);

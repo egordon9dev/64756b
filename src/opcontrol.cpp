@@ -58,7 +58,7 @@ void opcontrol() {
         setupAuton();
         setupAuton();
         setupAuton();
-        auton2(true);
+        auton2(false);
         while (1) {
             for (int i = 0; i < 5; i++) {
                 odometry.update();
