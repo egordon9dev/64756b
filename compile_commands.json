@@ -203,11 +203,11 @@
             "-fdiagnostics-color",
             "--std=gnu++17",
             "-o",
-            "bin/test.cpp.o",
-            "src\\test.cpp"
+            "bin/pid.cpp.o",
+            "src\\pid.cpp"
         ],
-        "directory": "C:\\Users\\Ethan\\64756b",
-        "file": "src\\test.cpp"
+        "directory": "c:\\Users\\Ethan\\64756b",
+        "file": "src\\pid.cpp"
     },
     {
         "arguments": [
@@ -238,11 +238,11 @@
             "-fdiagnostics-color",
             "--std=gnu++17",
             "-o",
-            "bin/pid.cpp.o",
-            "src\\pid.cpp"
+            "bin/test.cpp.o",
+            "src\\test.cpp"
         ],
-        "directory": "c:\\Users\\Ethan\\64756b",
-        "file": "src\\pid.cpp"
+        "directory": "C:\\Users\\Ethan\\64756b",
+        "file": "src\\test.cpp"
     },
     {
         "arguments": [

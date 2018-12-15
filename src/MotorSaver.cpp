@@ -7,6 +7,13 @@ MotorSaver::MotorSaver(int iterations) {
     pwrs = new int[iterations];
     maxSpeed = 30 * speedsLen;
     maxPwr = 12000 * speedsLen;
+    setConstants(0.4, 0.25, 0.1, 0.02);
+}
+void MotorSaver::setConstants(double p1, double p2, double s1, double s2) {
+    pwr1 = p1;
+    pwr2 = p2;
+    spd1 = s1;
+    spd2 = s2;
 }
 MotorSaver::~MotorSaver() {
     delete[] speeds;
@@ -33,9 +40,12 @@ int MotorSaver::getPwr(int inputPwr, int encoderValue) {
         sumSpeed += speeds[i];
         sumPwr += pwrs[i];
     }
-    if (sumSpeed < maxSpeed * 0.1 && sumPwr > maxPwr * 0.4) { inputPwr = clamp(inputPwr, -2000, 2000); }
-    if (sumSpeed < maxSpeed * 0.02 && sumPwr > maxPwr * 0.25) { inputPwr = 0; }
+    if (sumSpeed < maxSpeed * spd1 && sumPwr > maxPwr * pwr1) { inputPwr = clamp(inputPwr, -2000, 2000); }
+    if (sumSpeed < maxSpeed * spd2 && sumPwr > maxPwr * pwr2) { inputPwr = 0; }
     return clamp(inputPwr, -12000, 12000);
+}
+void MotorSaver::reset() {
+    for (int i = 0; i < speedsLen; i++) speeds[i] = pwrs[i] = 0;
 }
 int MotorSaver::getSumSpeed() { return sumSpeed; }
 int MotorSaver::getSumPwr() { return sumPwr; }

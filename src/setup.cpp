@@ -5,7 +5,6 @@
 #include "main.h"
 #include "pid.hpp"
 
-using namespace pros;
 // motors
 pros::Motor mtr5(4);
 pros::Motor mtr6(7);
@@ -14,8 +13,8 @@ pros::Motor mtr8(8);
 pros::Motor mtr9(9);
 pros::Motor mtr10(10);
 pros::Motor mtr11(13);
-pros::Motor mtr12(1);
-// bad ports: 11, 12, 5
+pros::Motor mtr12(2);
+// bad ports: 11, 12, 5, 1
 
 // motor savers
 MotorSaver dlSaver(22);
@@ -26,14 +25,14 @@ MotorSaver intakeSaver(40);
 MotorSaver flySaver(40);
 
 pros::Controller ctlr(pros::E_CONTROLLER_MASTER);
-
+using pros::delay;
 // sensors
 pros::ADIPotentiometer* drfbPot;
 pros::ADIPotentiometer* clawPot;
 pros::ADILineSensor* ballSens;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 3360, drfbPos0 = /*1390*/ 1070, drfbMinPos = 1070, drfbPos1 = 2309, drfbPos2 = 2798, drfbMinClaw = 1400, drfb18Max = 1445;
+const int drfbMaxPos = 3260, drfbPos0 = /*1390*/ 1070, drfbMinPos = 1070, drfbPos1 = 2309, drfbPos2 = 2798, drfbMinClaw = 1400, drfb18Max = 1445;
 const int dblClickTime = 450, claw180 = 1350, clawPos0 = 561, clawPos1 = 3900;
 const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
@@ -47,6 +46,7 @@ Point polarToRect(double mag, double angle) {
 //----------- Drive -----------
 double getDL() { return (-mtr8.get_position() - mtr9.get_position()) * 0.5; }
 double getDR() { return (mtr6.get_position() + mtr7.get_position()) * 0.5; }
+int millis() { return pros::millis(); }
 void setDR(int n) {
     n = clamp(n, -12000, 12000);
     n = DRSlew.update(n);
@@ -107,25 +107,14 @@ int getBallSens() { return ballSens->get_value(); }
 bool isBallIn() { return getBallSens() < 1800; }
 //----------- DRFB functions ---------
 void setDrfb(int n) {
-    static int prevN = -99999, t0 = 0;
-    static int prevDrfb = drfbPos0, prevT = 0;
-    if (abs(n - prevN) > 1000) {
-        t0 = millis();
-        prevN = n;
-    }
-    double vel = (double)(getDrfb() - prevDrfb) / (millis() - prevT);
-    prevT = millis();
-    prevDrfb = getDrfb();
-    bool stall = millis() - t0 > 50 && ((n < 0 && vel > -0.1) || (n > 0 && vel < 0.1));
-    int maxStall = stall ? 3000 : 12000;
-    if (((getDrfb() < drfbMinPos + 300 && n < 0) || (getDrfb() > drfbMaxPos - 300 && n > 0)) && maxStall > 4500) maxStall = 4500;
-    // n += (getDrfb() - drfbMinPos) / 3.0 - 300;
-    n = clamp(n, -maxStall, maxStall);
+    if (getDrfb() < drfbMinPos + 150 && n < -2500) n = -2500;
+    if (getDrfb() > drfbMaxPos - 150 && n > 2500) n = 2500;
     n = drfbSlew.update(n);
     n = drfbSaver.getPwr(n, getDrfb());
     mtr12.move_voltage(-n);
 }
 int getDrfb() { return 4095 - drfbPot->get_value(); }
+int getDrfbEncoder() { return -mtr12.get_position(); }
 int getDrfbVoltage() { return mtr12.get_voltage(); }
 bool pidDrfb(double pos, int wait) {
     drfbPid.target = pos;
@@ -240,7 +229,7 @@ void printPidValues() {
 }
 extern Point g_target;
 void printDrivePidValues() {
-    printf("%.1f DL%d DR%d drive %3.1f/%3.1f turn %2.1f/%2.1f x %3.1f/%3.1f y %3.1f/%3.1f", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y);
+    printf("%.1f DL%d DR%d drive %3.1f/%3.1f turn %2.1f/%2.1f x %3.1f/%3.1f y %3.1f/%3.1f a %.1f ", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA());
     std::cout << std::endl;
 }
 
@@ -273,6 +262,7 @@ void setupAuton() {
 
     drfbSlew.slewRate = 99999;
     setDrfbParams(true);
+    drfbSaver.setConstants(0.0, 0.5, 0.0, 0.01);
     drfbPid.DONE_ZONE = 100;
     drfbPid.target = drfbPos0;
 
@@ -290,6 +280,7 @@ void setupAuton() {
 
     curvePid.kp = 100000;
     curvePid.ki = 2000;
+    curvePid.kd = 3000000;
     curvePid.iActiveZone = PI / 18;
     curvePid.maxIntegral = 5000;
 
@@ -298,9 +289,9 @@ void setupAuton() {
     flywheelPid.target = 0;
     static bool first = true;
     if (first) {
-        drfbPot = new ADIPotentiometer(2);
-        clawPot = new ADIPotentiometer(4);
-        ballSens = new ADILineSensor(8);
+        drfbPot = new pros::ADIPotentiometer(2);
+        clawPot = new pros::ADIPotentiometer(4);
+        ballSens = new pros::ADILineSensor(8);
         printf("\n\n\ndynamics inited.\n\n\n");
     }
     first = false;

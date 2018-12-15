@@ -4,7 +4,6 @@
 #include "point.hpp"
 #include "setup.hpp"
 #include "test.hpp"
-using namespace pros;
 /*
 Ch3         drive
 Ch1         turn
@@ -28,6 +27,7 @@ A, Y        flip  cap
  * operator control task will be stopped. Re-enabling the robot will restart the
  * task, not resume it from where it left off.
  */
+using pros::delay;
 using std::cout;
 using std::endl;
 void opcontrol() {
@@ -55,15 +55,86 @@ void opcontrol() {
     int nBalls = 0;
     int intakeT0 = BIL;
     if (1) {
-        setupAuton();
-        setupAuton();
-        setupAuton();
-        auton2(false);
-		while(1) {
-			stopMotors();
-			printf("%d\n", getDrfb());
-			delay(50);
-		}
+        auton2(true);
+        while (1) delay(5000);
+        // odometry.setA(0);
+        // odometry.setX(-5);
+        // odometry.setY(0);
+        // pidDriveArcInit(Point(-5, 0), Point(-20, -12), 5, 1, 100);
+        // while (!ctlr.get_digital(DIGITAL_B)) {
+        //     odometry.update();
+        //     printArcData();
+        //     if (pidDriveArc()) break;
+        //     delay(10);
+        // }
+
+        flywheelPid.target = 0;
+        clawPid.target = getClaw();
+        drfbPid.target = getDrfb();
+        int i = 0, t0, sideSign = 1, driveT = 100;
+        bool drfbPidRunning = true, clawPidRunning = true;
+        IntakeState is = IntakeState::NONE;
+        int lastT, autonT0 = millis();
+        bool printing = false;
+        Point ptA = Point(-5.3, 0), ptB;
+        while (!ctlr.get_digital(DIGITAL_B)) {
+            odometry.update();
+            int j = 0;
+            if (i == j++) {
+                setDL(12000);
+                setDR(4000);
+                if (millis() - autonT0 > 1000) i++;
+            } else if (i == j++) {
+                odometry.setX(0);
+                odometry.setY(0);
+                odometry.setA(0);
+                dlSaver.reset();
+                drSaver.reset();
+                pidDriveInit(ptA, 100);
+                i++;
+            } else if (i == j++) {
+                printf("align for cap place ");
+                if (pidDrive()) {
+                    drfbPid.target = drfbPos0;
+                    t0 = millis();
+                    i++;
+                }
+            } else if (i == j++) {
+                printf("place cap ");
+                drfbPidRunning = false;
+                setDL(0);
+                setDR(0);
+                setDrfb(-12000);
+                printing = true;
+                if (getDrfb() < drfbPos1 + 50 || millis() - t0 > 800) {
+                    drfbPid.target = drfbPos1;
+                    drfbPidRunning = true;
+                    t0 = millis();
+                    ptB = Point(-sideSign * 35, -8);
+                    pidDriveArcInit(ptA, ptB, 55, sideSign, driveT);
+                    i++;
+                }
+            } else if (i == j++) {
+                printing = false;
+                printf("arc to shoot pos ");
+                printArcData();
+                if (millis() - t0 > 300) drfbPid.target = drfbPos0;
+                if (pidDriveArc()) { i++; }
+            } else {
+                stopMotors();
+            }
+            if (clawPidRunning) pidClaw();
+            pidFlywheel();
+            if (drfbPidRunning) pidDrfb();
+            setIntake(is);
+            if (millis() - lastT > 100 && printing) {
+                printf("t%d ", millis() - autonT0);
+                printDrivePidValues();
+                lastT = millis();
+            }
+            delay(10);
+            delay(10);
+        }
         while (0) {
             for (int i = 0; i < 5; i++) {
                 odometry.update();
@@ -80,8 +151,8 @@ void opcontrol() {
     }
     setDrfbParams(false);
     while (true) {
-        dt = pros::millis() - prevT;
-        prevT = pros::millis();
+        dt = millis() - prevT;
+        prevT = millis();
         pros::lcd::print(7, "%.2lfv      %d%%", pros::battery::get_voltage() / 1000.0, (int)pros::battery::get_capacity());
         // pros::lcd::print(1, "drfb %d", getDrfb());
         // pros::lcd::print(2, "ballSens %d", getBallSens());
@@ -140,7 +211,7 @@ void opcontrol() {
             drfbPidRunning = true;
             drfbPid.target = drfbPos2;
             setDrfbParams(true);
-        } else if ((int)millis() - tDrfbOff > 130 && millis() - opcontrolT0 > 300) {
+        } else if (millis() - tDrfbOff > 130 && millis() - opcontrolT0 > 300) {
             if (!drfbPidRunning) {
                 drfbPidRunning = true;
                 drfbPid.target = getDrfb();

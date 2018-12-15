@@ -27,6 +27,7 @@ void printAllClicks(int line, bool** allClicks);
 void printPidValues();
 void stopMotors();
 Point polarToRect(double mag, double angle);
+int millis();
 
 // -------- Drive --------
 void setDR(int n);
@@ -51,6 +52,7 @@ bool isBallIn();
 void setDrfb(int n);
 void setDrfbParams(bool auton);
 int getDrfb();
+int getDrfbEncoder();
 bool pidDrfb(double pos, int wait);
 void pidDrfb();
 //---------- Claw functions --------

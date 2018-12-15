@@ -2,6 +2,7 @@
 #include <cmath>
 #include "pid.hpp"
 #include "setup.hpp"
+using pros::delay;
 void testPoint() {
     const Point p1(0, 0);
     const Point p2(1, 2);
@@ -34,7 +35,6 @@ void testPoint() {
 }
 void codeTest() { testPoint(); }
 
-using namespace pros;
 void doTests() {
     while (0) {
         pidFlywheel(2.5);
@@ -52,7 +52,7 @@ void doTests() {
         odometry.update();
         // pidDrive(p1, 999999);
         // pidTurn(PI / 4, 999999);
-        //pidDriveArc(p1, 100, 1, 999999);
+        // pidDriveArc(p1, 100, 1, 999999);
         if (millis() - lastT > 100) {
             printDrivePidValues();
             lastT = millis();
