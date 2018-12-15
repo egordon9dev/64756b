@@ -55,7 +55,7 @@ void opcontrol() {
     int nBalls = 0;
     int intakeT0 = BIL;
     if (1) {
-        auton2(true);
+        auton3(true);
         while (1) delay(5000);
         // odometry.setA(0);
         // odometry.setX(-5);

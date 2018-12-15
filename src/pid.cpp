@@ -185,14 +185,27 @@ bool pidDrive() {
     return returnVal;
 }
 int g_pidTurnLimit = 12000;
-bool pidTurn(const double angle, const int wait) {
+namespace turnData {
+double angle;
+int wait;
+void init(double a, int w) {
+    angle = a;
+    wait = w;
+}
+}  // namespace turnData
+void pidTurnInit(const double angle, const int wait) {
+    turnData::init(angle, wait);
+    turnPid.doneTime = BIL;
+}
+bool pidTurn() {
+    using turnData::angle;
+    using turnData::wait;
     turnPid.sensVal = odometry.getA();
     turnPid.target = angle;
     int pwr = clamp((int)turnPid.update(), -g_pidTurnLimit, g_pidTurnLimit);
     setDL(-pwr);
     setDR(pwr);
-    if (turnPid.doneTime + wait < millis()) return true;
-    return false;
+    return turnPid.doneTime + wait < millis();
 }
 bool pidTurnSweep(double tL, double tR, int wait) {
     DLPid.sensVal = getDL();

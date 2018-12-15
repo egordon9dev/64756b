@@ -251,8 +251,8 @@ void setupAuton() {
     flywheelPid.kp = 200.0;
     flywheelPid.kd = 10000.0;
     flywheelPid.dInactiveZone = 0.01;
-
     flywheelPid.DONE_ZONE = 0.2;
+    flySaver.setConstants(1, 1, 0, 0);
 
     clawPid.kp = 10.0;
     clawPid.ki = 0.0;
