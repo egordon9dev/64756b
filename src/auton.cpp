@@ -289,7 +289,7 @@ void auton2(bool leftSide) {
                 printing = true;
                 setDL(0);
                 setDR(0);
-                ptA = Point(ptA.x, 56);
+                ptA = Point(ptA.x, 57);
                 pidDriveInit(ptA, 0);
                 i++;
             }
@@ -321,20 +321,26 @@ void auton2(bool leftSide) {
                 DLSlew.slewRate = 120;
                 DRSlew.slewRate = 120;
                 t0 = BIL;
-                pidDriveArcInit(ptB, Point(27 * sideSign, 39), 20, -sideSign, 0);
+                t02 = millis();
+                pidDriveArcInit(ptB, Point(27 * sideSign, 38), 20, -sideSign, 0);
                 i++;
             }
         } else if (i == j++) {  // funnel drive
             printf("funnel drive ");
-            pidDriveArc();
+            if (millis() - t02 < 700) {
+                pidDriveArc();
+            } else {
+                setDL(8000);
+                setDR(8000);
+            }
             printf("\n");
-            if (!dlSaver.isFaster(0.1) && !drSaver.isFaster(0.1) && (dlSaver.isPwr(0.25) || drSaver.isPwr(0.25))) {
+            if (millis() - t02 > 700 && !dlSaver.isFaster(0.25) && !drSaver.isFaster(0.25)) {
                 if (t0 > millis()) t0 = millis();
             }
             if (millis() - t0 > 300) {
                 odometry.setX(0);
                 odometry.setY(0);
-                // odometry.setA(leftSide ? 0 : PI);
+                odometry.setA(leftSide ? 0 : PI);
                 dlSaver.reset();
                 drSaver.reset();
                 ptA = Point(-sideSign * 5.3, 0);
@@ -362,7 +368,7 @@ void auton2(bool leftSide) {
                 drfbPid.target = drfbPos1;
                 drfbPidRunning = true;
                 t0 = millis();
-                ptB = Point(-sideSign * 30, -3);
+                ptB = Point(-sideSign * 22, -3);
                 pidDriveArcInit(ptA, ptB, 55, sideSign, driveT);
                 i++;
             }
@@ -380,14 +386,14 @@ void auton2(bool leftSide) {
             setDL(0);
             setDR(0);
             is = IntakeState::ALL;
-            if (millis() - t0 > 1000) {
+            if (millis() - t0 > 500) {
                 t0 = millis();
-                flywheelPid.target = 2.9;
+                flywheelPid.target = 3.0;
                 i++;
             }
         } else if (i == j++) {
             is = IntakeState::NONE;
-            if (millis() - t0 > 800) {
+            if (millis() - autonT0 > 14200) {
                 t0 = millis();
                 i++;
             }

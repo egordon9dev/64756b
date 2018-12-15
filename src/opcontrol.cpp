@@ -54,8 +54,8 @@ void opcontrol() {
     int driveDir = 1;
     int nBalls = 0;
     int intakeT0 = BIL;
-    if (1) {
-        auton3(true);
+    if (0) {
+        auton2(true);
         while (1) delay(5000);
         // odometry.setA(0);
         // odometry.setX(-5);
@@ -77,64 +77,7 @@ void opcontrol() {
         int lastT, autonT0 = millis();
         bool printing = false;
         Point ptA = Point(-5.3, 0), ptB;
-        while (!ctlr.get_digital(DIGITAL_B)) {
-            odometry.update();
-            int j = 0;
-            if (i == j++) {
-                setDL(12000);
-                setDR(4000);
-                if (millis() - autonT0 > 1000) i++;
-            } else if (i == j++) {
-                odometry.setX(0);
-                odometry.setY(0);
-                odometry.setA(0);
-                dlSaver.reset();
-                drSaver.reset();
-                pidDriveInit(ptA, 100);
-                i++;
-            } else if (i == j++) {
-                printf("align for cap place ");
-                if (pidDrive()) {
-                    drfbPid.target = drfbPos0;
-                    t0 = millis();
-                    i++;
-                }
-            } else if (i == j++) {
-                printf("place cap ");
-                drfbPidRunning = false;
-                setDL(0);
-                setDR(0);
-                setDrfb(-12000);
-                printing = true;
-                if (getDrfb() < drfbPos1 + 50 || millis() - t0 > 800) {
-                    drfbPid.target = drfbPos1;
-                    drfbPidRunning = true;
-                    t0 = millis();
-                    ptB = Point(-sideSign * 35, -8);
-                    pidDriveArcInit(ptA, ptB, 55, sideSign, driveT);
-                    i++;
-                }
-            } else if (i == j++) {
-                printing = false;
-                printf("arc to shoot pos ");
-                printArcData();
-                if (millis() - t0 > 300) drfbPid.target = drfbPos0;
-                if (pidDriveArc()) { i++; }
-            } else {
-                stopMotors();
-            }
-            if (clawPidRunning) pidClaw();
-            pidFlywheel();
-            if (drfbPidRunning) pidDrfb();
-            setIntake(is);
-            if (millis() - lastT > 100 && printing) {
-                printf("t%d ", millis() - autonT0);
-                printDrivePidValues();
-                lastT = millis();
-            }
-            delay(10);
-            delay(10);
-        }
+
         while (0) {
             for (int i = 0; i < 5; i++) {
                 odometry.update();
