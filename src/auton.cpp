@@ -245,7 +245,7 @@ void auton2(bool leftSide) {
         odometry.update();
         if (i == j++) {
             t0 = millis();
-            pidDriveInit(Point(0, 45), driveT);
+            pidDriveInit(Point(0, 44), driveT);
             enc0 = getDrfbEncoder();
             i++;
             k = 0;
@@ -270,10 +270,10 @@ void auton2(bool leftSide) {
             printf("drv away cap 1");
             setDL(12000);
             setDR(12000);
-            if (odometry.getY() < 43.5) {
-                ptA = Point(23.5 * sideSign, 42);
-                pidFollowArcInit(Point(0, 42), ptA, 5, sideSign, 0);
-                pidDriveArcBias(2300);
+            if (odometry.getY() < 40) {
+                ptA = Point((leftSide ? 22 : 25.5) * sideSign, 37);
+                pidFollowArcInit(Point(0, 37), ptA, leftSide ? 11.5 : 12.5, sideSign, 0);
+                pidDriveArcBias(1500);
                 t0 = BIL;
                 i++;
             }
@@ -289,26 +289,26 @@ void auton2(bool leftSide) {
                 printing = true;
                 setDL(0);
                 setDR(0);
-                ptA = Point(ptA.x, 57);
-                pidDriveInit(ptA, 0);
                 i++;
             }
         } else if (i == j++) {
             printf("drv twd cap 2");
-            if (pidDrive()) {
+            setDL(12000);
+            setDR(12000);
+            if (odometry.getY() > 43) {
                 t0 = millis();
                 i++;
             }
         } else if (i == j++) {  // lift cap
             printf("liftCap ");
-            setDL(0);
-            setDR(0);
+            setDL(-2000);
+            setDR(-2000);
             drfbPidRunning = false;
             setDrfb(12000);
             if (getDrfb() > clawPos0 + 100) {
                 drfbPidRunning = true;
                 drfbPid.target = drfbPos1 + 250;
-                ptB = Point(4 * sideSign, 28);
+                ptB = Point(4 * sideSign, leftSide ? 36 : 24);
                 pidDriveArcInit(ptA, ptB, 60, -sideSign, 0);
                 DLSlew.slewRate = 40;
                 DRSlew.slewRate = 40;
@@ -322,7 +322,7 @@ void auton2(bool leftSide) {
                 DRSlew.slewRate = 120;
                 t0 = BIL;
                 t02 = millis();
-                pidDriveArcInit(ptB, Point(27 * sideSign, 38), 20, -sideSign, 0);
+                pidDriveArcInit(ptB, Point(27 * sideSign, leftSide ? 27 : 15), 20, -sideSign, 0);
                 i++;
             }
         } else if (i == j++) {  // funnel drive
@@ -330,8 +330,8 @@ void auton2(bool leftSide) {
             if (millis() - t02 < 700) {
                 pidDriveArc();
             } else {
-                setDL(8000);
-                setDR(8000);
+                setDL(9000);
+                setDR(9000);
             }
             printf("\n");
             if (millis() - t02 > 700 && !dlSaver.isFaster(0.25) && !drSaver.isFaster(0.25)) {
@@ -343,7 +343,7 @@ void auton2(bool leftSide) {
                 odometry.setA(leftSide ? 0 : PI);
                 dlSaver.reset();
                 drSaver.reset();
-                ptA = Point(-sideSign * 5.3, 0);
+                ptA = Point(-sideSign * 7, 0);
                 pidDriveInit(ptA, driveT);
                 i++;
             }
@@ -368,8 +368,9 @@ void auton2(bool leftSide) {
                 drfbPid.target = drfbPos1;
                 drfbPidRunning = true;
                 t0 = millis();
-                ptB = Point(-sideSign * 22, -3);
-                pidDriveArcInit(ptA, ptB, 55, sideSign, driveT);
+                t02 = BIL;
+                ptB = Point(-sideSign * 22, 5);
+                pidDriveArcInit(ptA, ptB, 100, -sideSign, driveT);
                 i++;
             }
         } else if (i == j++) {
@@ -378,11 +379,15 @@ void auton2(bool leftSide) {
             printArcData();
             printf("dl %d dr %d \n", (int)getDL(), (int)getDR());
             if (millis() - t0 > 300) drfbPid.target = drfbPos0;
-            if (pidDriveArc()) {
+            pidDriveArc();
+            if ((odometry.getPos() - ptB).mag() < 3 && t02 > millis()) t02 = millis();
+            if (millis() - t02 > 0) {
                 printing = true;
+                t0 = millis();
                 i++;
             }
         } else if (i == j++) {  // shoot
+            printf("shoot");
             setDL(0);
             setDR(0);
             is = IntakeState::ALL;
@@ -393,7 +398,7 @@ void auton2(bool leftSide) {
             }
         } else if (i == j++) {
             is = IntakeState::NONE;
-            if (millis() - autonT0 > 14200) {
+            if (millis() - autonT0 > 14300 || millis() - t0 > 1000) {
                 t0 = millis();
                 i++;
             }
@@ -457,7 +462,8 @@ void auton3(bool leftSide) {
         odometry.update();
         if (i == j++) {
             t0 = millis();
-            pidDriveInit(Point(0, 45), driveT);
+            ptB = Point(0, 46);
+            pidDriveInit(ptB, driveT);
             enc0 = getDrfbEncoder();
             flywheelPid.target = 3.0;
             i++;
@@ -479,14 +485,18 @@ void auton3(bool leftSide) {
             if (pidDrive()) {
                 drfbPidRunning = true;
                 drfbPid.target = drfbPos0;
-                ptA = Point(7 * sideSign, 10);
-                pidDriveInit(ptA, driveT);
+                ptA = Point(11 * sideSign, 10);
+                if (!leftSide) {
+                    ptA.y += 4;
+                    ptA.x -= 2;
+                }
+                pidDriveArcInit(ptB, ptA, 65, sideSign, driveT);
                 i++;
             }
         } else if (i == j++) {  // drive back
-            if (pidDrive()) {
+            if (pidDriveArc()) {
                 is = IntakeState::NONE;
-                targetAngle += sideSign * PI * 0.56;
+                targetAngle += sideSign * PI * 0.538;
                 pidTurnInit(targetAngle, driveT);
                 i++;
             }
@@ -499,14 +509,17 @@ void auton3(bool leftSide) {
             setDL(0);
             setDR(0);
             is = IntakeState::ALL;
-            if (millis() - t0 > 800) {
-                pidDriveArcInit(ptA, Point(-17 * sideSign, -1), 40, -sideSign, driveT);
+            if (millis() - t0 > 500) {
+                pidDriveArcInit(ptA, Point(-20 * sideSign, -1), 40, -sideSign, driveT);
                 t0 = millis();
                 i++;
             }
         } else if (i == j++) {
             is = IntakeState::NONE;
-            if (pidDriveArc()) i++;
+            if (pidDriveArc()) {
+                i++;
+                t0 = millis();
+            }
         } else if (i == j++) {
             is = IntakeState::ALL;
             setDL(0);
@@ -540,6 +553,6 @@ void auton3(bool leftSide) {
 }
 void autonomous() {
     setupAuton();
-    auton2(true);
+    auton3(false);
     stopMotors();
 }

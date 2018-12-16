@@ -55,6 +55,15 @@ void opcontrol() {
     int nBalls = 0;
     int intakeT0 = BIL;
     if (0) {
+        while (1) {
+            printf("%d\n", (int)getClaw());
+
+            delay(10);
+        }
+        while (0) {
+            printf("%d\n", getDrfb());
+            delay(100);
+        }
         auton2(true);
         while (1) delay(5000);
         // odometry.setA(0);

@@ -7,7 +7,7 @@ MotorSaver::MotorSaver(int iterations) {
     pwrs = new int[iterations];
     maxSpeed = 30 * speedsLen;
     maxPwr = 12000 * speedsLen;
-    setConstants(0.4, 0.25, 0.1, 0.02);
+    setConstants(0.7, 0.4, 0.1, 0.01);
 }
 void MotorSaver::setConstants(double p1, double p2, double s1, double s2) {
     pwr1 = p1;

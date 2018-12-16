@@ -14,11 +14,11 @@ pros::Motor mtr9(9);
 pros::Motor mtr10(10);
 pros::Motor mtr11(13);
 pros::Motor mtr12(2);
-// bad ports: 11, 12, 5, 1
+// bad ports: 11, 12, 5, 1, 13
 
 // motor savers
-MotorSaver dlSaver(22);
-MotorSaver drSaver(22);
+MotorSaver dlSaver(35);
+MotorSaver drSaver(35);
 MotorSaver drfbSaver(40);
 MotorSaver clawSaver(65);
 MotorSaver intakeSaver(40);
@@ -32,8 +32,8 @@ pros::ADIPotentiometer* clawPot;
 pros::ADILineSensor* ballSens;
 
 //----------- Constants ----------------
-const int drfbMaxPos = 3260, drfbPos0 = /*1390*/ 1070, drfbMinPos = 1070, drfbPos1 = 2309, drfbPos2 = 2798, drfbMinClaw = 1400, drfb18Max = 1445;
-const int dblClickTime = 450, claw180 = 1350, clawPos0 = 561, clawPos1 = 3900;
+const int drfbMaxPos = 3260, drfbPos0 = /*1390*/ 1105, drfbMinPos = 1070, drfbPos1 = 2280, drfbPos2 = 2798, drfbMinClaw = 1400, drfb18Max = 1445;
+const int dblClickTime = 450, claw180 = 1350, clawPos0 = 590, clawPos1 = 3800;
 const double ticksPerInch = 52.746 /*very good*/, ticksPerRadian = 368.309;
 const double PI = 3.14159265358979323846;
 const int BIL = 1000000000, MIL = 1000000;
@@ -48,14 +48,14 @@ double getDL() { return (-mtr8.get_position() - mtr9.get_position()) * 0.5; }
 double getDR() { return (mtr6.get_position() + mtr7.get_position()) * 0.5; }
 int millis() { return pros::millis(); }
 void setDR(int n) {
-    n = clamp(n, -12000, 12000);
+    n = clamp(n, -10000, 10000);
     n = DRSlew.update(n);
     n = drSaver.getPwr(n, getDR());
     mtr6.move_voltage(n);
     mtr7.move_voltage(n);
 }
 void setDL(int n) {
-    n = clamp(n, -12000, 12000);
+    n = clamp(n, -10000, 10000);
     n = DLSlew.update(n);
     n = dlSaver.getPwr(n, getDL());
     mtr8.move_voltage(-n);
@@ -107,8 +107,8 @@ int getBallSens() { return ballSens->get_value(); }
 bool isBallIn() { return getBallSens() < 1800; }
 //----------- DRFB functions ---------
 void setDrfb(int n) {
-    if (getDrfb() < drfbMinPos + 150 && n < -2500) n = -2500;
-    if (getDrfb() > drfbMaxPos - 150 && n > 2500) n = 2500;
+    if (getDrfb() < drfbMinPos + 150 && n < -3500) n = -3500;
+    if (getDrfb() > drfbMaxPos - 150 && n > 3500) n = 3500;
     n = drfbSlew.update(n);
     n = drfbSaver.getPwr(n, getDrfb());
     mtr12.move_voltage(-n);
