@@ -54,10 +54,19 @@ void opcontrol() {
     int driveDir = 1;
     int nBalls = 0;
     int intakeT0 = BIL;
-    if (0) {
+    if (1) {
+        odometry.setA(PI / 2);
+        odometry.setX(0);
+        odometry.setY(0);
+        pidDriveInit(Point(0, 25), 200);
+        while (!ctlr.get_digital(DIGITAL_B)) {
+            odometry.update();
+            printDrivePidValues();
+            if (pidDrive()) break;
+            delay(10);
+        }
         while (1) {
-            printf("%d\n", (int)getClaw());
-
+            stopMotors();
             delay(10);
         }
         while (0) {
@@ -66,16 +75,6 @@ void opcontrol() {
         }
         auton2(true);
         while (1) delay(5000);
-        // odometry.setA(0);
-        // odometry.setX(-5);
-        // odometry.setY(0);
-        // pidDriveArcInit(Point(-5, 0), Point(-20, -12), 5, 1, 100);
-        // while (!ctlr.get_digital(DIGITAL_B)) {
-        //     odometry.update();
-        //     printArcData();
-        //     if (pidDriveArc()) break;
-        //     delay(10);
-        // }
 
         flywheelPid.target = 0;
         clawPid.target = getClaw();

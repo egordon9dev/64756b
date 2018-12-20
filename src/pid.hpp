@@ -36,7 +36,7 @@ class Odometry_t {
     Point getPos();
 };
 
-void pidDriveInit(const Point& target, const int wait);
+void pidDriveInit(Point target, const int wait);
 bool pidDrive();
 void pidTurnInit(const double angle, const int wait);
 bool pidTurn();

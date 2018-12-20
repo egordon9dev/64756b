@@ -48,14 +48,12 @@ double getDL() { return (-mtr8.get_position() - mtr9.get_position()) * 0.5; }
 double getDR() { return (mtr6.get_position() + mtr7.get_position()) * 0.5; }
 int millis() { return pros::millis(); }
 void setDR(int n) {
-    n = clamp(n, -10000, 10000);
     n = DRSlew.update(n);
     n = drSaver.getPwr(n, getDR());
     mtr6.move_voltage(n);
     mtr7.move_voltage(n);
 }
 void setDL(int n) {
-    n = clamp(n, -10000, 10000);
     n = DLSlew.update(n);
     n = dlSaver.getPwr(n, getDL());
     mtr8.move_voltage(-n);
@@ -229,7 +227,7 @@ void printPidValues() {
 }
 extern Point g_target;
 void printDrivePidValues() {
-    printf("%.1f DL%d DR%d drive %3.1f/%3.1f turn %2.1f/%2.1f x %3.1f/%3.1f y %3.1f/%3.1f a %.1f ", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA());
+    printf("%.1f DL%d DR%d drive %3.2f/%3.2f turn %2.2f/%2.2f x %3.2f/%3.2f y %3.2f/%3.2f a %.2f\n", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, turnPid.sensVal, turnPid.target, odometry.getX(), g_target.x, odometry.getY(), g_target.y, odometry.getA());
     std::cout << std::endl;
 }
 
@@ -280,7 +278,7 @@ void setupAuton() {
 
     curvePid.kp = 100000;
     curvePid.ki = 2000;
-    curvePid.kd = 3000000;
+    curvePid.kd = 400000;  // was 3000000
     curvePid.iActiveZone = PI / 18;
     curvePid.maxIntegral = 5000;
 

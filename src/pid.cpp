@@ -110,7 +110,7 @@ double Pid_t::update() {
     // done zone
     if (fabs(err) <= DONE_ZONE && doneTime > millis()) {
         doneTime = millis();
-        printf("DONE\n");
+        // printf("DONE\n");
     }
     // derivative action: slowing down
     /*if (fabs(d) > (fabs(p)) * 20.0) {
@@ -125,72 +125,73 @@ Point g_target;
 namespace driveData {
 Point target;
 int wait;
+int doneT;
 void init(Point t, int w) {
     target = t;
     wait = w;
+    doneT = BIL;
 }
 }  // namespace driveData
-void pidDriveInit(const Point& target, const int wait) {
+void pidDriveInit(Point target, const int wait) {
+    // prevent div by 0 errors
+    if (target.x == 0.0) target.x = 0.001;
+    if (target.y == 0.0) target.y = 0.001;
     drivePid.doneTime = BIL;
     turnPid.doneTime = BIL;
     driveData::init(target, wait);
 }
 bool pidDrive() {
+    using driveData::doneT;
     using driveData::target;
     using driveData::wait;
     g_target = target;
     Point pos(odometry.getX(), odometry.getY());
-    static int prevT = 0;
     static Point prevPos(0, 0);
-    int dt = millis() - prevT;
-    bool returnVal = false;
-    if (dt < 100) {
-        // Point dir = pos - prevPos;
-        Point targetDir = target - pos;
-        if (targetDir.mag() < 0.001) {
-            setDL(0);
-            setDR(0);
-        } else {
-            // error detection
-            Point dirOrientation(cos(odometry.getA()), sin(odometry.getA()));
-            double aErr = acos(clamp((dirOrientation * targetDir) / (dirOrientation.mag() * targetDir.mag()), -1.0, 1.0));
+    Point targetDir = target - pos;
+    // error detection
+    Point dirOrientation(cos(odometry.getA()), sin(odometry.getA()));
+    double aErr = acos(clamp((dirOrientation * targetDir) / (dirOrientation.mag() * targetDir.mag()), -1.0, 1.0));
 
-            // allow for driving backwards
-            int driveDir = 1;
-            if (aErr > PI / 2) {
-                driveDir = -1;
-                aErr = PI - aErr;
-            }
-            if (dirOrientation < targetDir) aErr *= -driveDir;
-            if (dirOrientation > targetDir) aErr *= driveDir;
+    // allow for driving backwards
+    int driveDir = 1;
+    if (aErr > PI / 2) {
+        driveDir = -1;
+        aErr = PI - aErr;
+    }
+    if (dirOrientation < targetDir) aErr *= -driveDir;
+    if (dirOrientation > targetDir) aErr *= driveDir;
 
-            // error correction
-            double curA = odometry.getA();
-            drivePid.target = 0.0;
-            drivePid.sensVal = targetDir.mag() * cos(aErr);
-            if (drivePid.sensVal < 4) aErr = 0;
-            turnPid.target = 0;
-            turnPid.sensVal = aErr;
-            int turnPwr = clamp((int)turnPid.update(), -8000, 8000);
-            int drivePwr = clamp((int)drivePid.update(), -8000, 8000);
-            // prevent turn saturation
-            // if (abs(turnPwr) > 0.2 * abs(drivePwr)) turnPwr = (turnPwr < 0 ? -1 : 1) * 0.2 * abs(drivePwr);
-            setDL(-drivePwr * driveDir - turnPwr);
-            setDR(-drivePwr * driveDir + turnPwr);
-        }
-        if (drivePid.doneTime + wait < millis()) returnVal = true;
+    // error correction
+    double curA = odometry.getA();
+    drivePid.target = 0.0;
+    drivePid.sensVal = targetDir.mag() * cos(aErr);
+    if (drivePid.sensVal < 4) aErr = 0;
+    turnPid.target = 0;
+    turnPid.sensVal = aErr;
+    int turnPwr = clamp((int)turnPid.update(), -8000, 8000);
+    int drivePwr = clamp((int)drivePid.update(), -8000, 8000);
+    // prevent turn saturation
+    // if (abs(turnPwr) > 0.2 * abs(drivePwr)) turnPwr = (turnPwr < 0 ? -1 : 1) * 0.2 * abs(drivePwr);
+    setDL(-drivePwr * driveDir - turnPwr);
+    setDR(-drivePwr * driveDir + turnPwr);
+
+    if (fabs(drivePid.sensVal) < 1 && (pos - prevPos).mag() < 0.01) {
+        if (doneT > millis()) doneT = millis();
+    } else {
+        doneT = BIL;
     }
     prevPos = pos;
-    prevT = millis();
-    return returnVal;
+    return doneT + wait < millis();
 }
 int g_pidTurnLimit = 12000;
 namespace turnData {
 double angle;
 int wait;
+int doneT;
 void init(double a, int w) {
     angle = a;
     wait = w;
+    doneT = BIL;
 }
 }  // namespace turnData
 void pidTurnInit(const double angle, const int wait) {
@@ -199,13 +200,22 @@ void pidTurnInit(const double angle, const int wait) {
 }
 bool pidTurn() {
     using turnData::angle;
+    using turnData::doneT;
     using turnData::wait;
     turnPid.sensVal = odometry.getA();
     turnPid.target = angle;
     int pwr = clamp((int)turnPid.update(), -g_pidTurnLimit, g_pidTurnLimit);
     setDL(-pwr);
     setDR(pwr);
-    return turnPid.doneTime + wait < millis();
+    static double prevA = turnPid.sensVal;
+    // printf("%f %f\n", fabs(turnPid.sensVal - turnPid.target), fabs(turnPid.sensVal - prevA));
+    if (fabs(turnPid.sensVal - turnPid.target) < 0.1 && fabs(turnPid.sensVal - prevA) < 0.001) {
+        if (doneT > millis()) doneT = millis();
+    } else {
+        doneT = BIL;
+    }
+    prevA = turnPid.sensVal;
+    return doneT + wait < millis();
 }
 bool pidTurnSweep(double tL, double tR, int wait) {
     DLPid.sensVal = getDL();
@@ -228,6 +238,11 @@ int wait;
 int bias;
 bool followArc;
 void init(Point start, Point target, double rMag, int rotationDirection) {
+    if (target.x == 0.0) target.x = 0.001;
+    if (target.y == 0.0) target.y = 0.001;
+    if (start.x == 0.0) start.x = 0.001;
+    if (start.y == 0.0) start.y = 0.001;
+
     doneT = BIL;
     _start = start;
     _target = target;
@@ -243,7 +258,7 @@ void init(Point start, Point target, double rMag, int rotationDirection) {
     center = midPt + polarToRect(altMag, altAngle);
 }
 // estimate the distance remaining for the drive
-// assumses you would never arc more than about 7*PI / 4
+// assumes you would never arc more than about 7*PI / 4
 double getArcPos() {
     Point pos = odometry.getPos() - center;
     Point tgt = _target - center;
@@ -259,7 +274,7 @@ double getArcPos() {
 }  // namespace arcData
 
 void printArcData() {
-    printf("%.1f DL%d DR%d drive %3.1f/%3.1f curve %2.1f/%2.1f R %.1f/%.1f x %3.1f/%3.1f y %3.1f/%3.1f a %.1f\n", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, curvePid.sensVal, curvePid.target, (odometry.getPos() - arcData::center).mag(), arcData::_rMag, odometry.getX(), arcData::_target.x, odometry.getY(), arcData::_target.y, odometry.getA());
+    printf("%.1f DL%d DR%d drive %3.1f/%3.1f curve %2.3f/%2.3f R %.1f/%.1f x %3.1f/%3.1f y %3.1f/%3.1f a %.1f\n", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, curvePid.sensVal, curvePid.target, (odometry.getPos() - arcData::center).mag(), arcData::_rMag, odometry.getX(), arcData::_target.x, odometry.getY(), arcData::_target.y, odometry.getA());
     std::cout << std::endl;
 }
 void pidDriveArcInit(Point start, Point target, double rMag, int rotationDirection, int wait) {
@@ -319,7 +334,7 @@ bool pidDriveArc() {
     if (arcData::followArc) drivePwr = pwrLim1;
     int turnPwr = clamp((int)curvePid.update(), -pwrLim1, pwrLim1);
     double pwrFactor = 1;  // clamp(1.0 / (1.0 + fabs(errRadius) / 2.0) * 1.0 / (1.0 + fabs(errAngle) * 6), 0.5, 1.0);
-    double curveFac = clamp(2.0 / (1.0 + exp(-_rMag / 7.0)) - 1.0, 0.0, 1.0);
+    double curveFac = clamp(2.0 / (1.0 + exp(-_rMag / 7.0)) - 1.0, 0.001, 1.0);
     double dlOut = clamp(drivePwr * pwrFactor * driveDir, (double)-pwrLim1, (double)pwrLim1);
     double drOut = clamp(drivePwr * pwrFactor * driveDir, (double)-pwrLim1, (double)pwrLim1);
     if (_rotationDirection * driveDir == -1) {
@@ -333,7 +348,13 @@ bool pidDriveArc() {
     drOut += _rotationDirection * driveDir * arcData::bias;
     setDL(clamp((int)dlOut, -pwrLim2, pwrLim2) - turnPwr);
     setDR(clamp((int)drOut, -pwrLim2, pwrLim2) + turnPwr);
+    static Point prevPos(0, 0);
 
-    if (fabs(arcPos) < 2.5 && doneT > millis()) doneT = millis();
+    if (fabs(drivePid.sensVal) < 2 && (pos - prevPos).mag() < 0.01) {
+        if (doneT > millis()) doneT = millis();
+    } else {
+        doneT = BIL;
+    }
+    prevPos = pos;
     return doneT + wait < millis();
 }
