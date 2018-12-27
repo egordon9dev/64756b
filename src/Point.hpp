@@ -13,6 +13,7 @@ class Point {
     friend bool operator<(const Point& p1, const Point& p2);
     double mag() const;
     Point abs();
+    Point unit();
     Point rotate(int dir) const;
 };
 #endif

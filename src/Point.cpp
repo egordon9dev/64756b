@@ -35,3 +35,7 @@ Point Point::abs() {
     Point p(fabs(x), fabs(y));
     return p;
 }
+Point Point::unit() {
+    double m = this->mag();
+    return Point(this->x / m, this->y / m);
+}

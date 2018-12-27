@@ -277,16 +277,25 @@ void printArcData() {
     printf("%.1f DL%d DR%d drive %3.1f/%3.1f curve %2.3f/%2.3f R %.1f/%.1f x %3.1f/%3.1f y %3.1f/%3.1f a %.1f\n", millis() / 1000.0, (int)(getDLVoltage() / 100 + 0.5), (int)(getDRVoltage() / 100 + 0.5), drivePid.sensVal, drivePid.target, curvePid.sensVal, curvePid.target, (odometry.getPos() - arcData::center).mag(), arcData::_rMag, odometry.getX(), arcData::_target.x, odometry.getY(), arcData::_target.y, odometry.getA());
     std::cout << std::endl;
 }
-void pidDriveArcInit(Point start, Point target, double rMag, int rotationDirection, int wait) {
+void pidDriveArcInit(Point start, Point target, double rMag, int rotationDir, int wait) {
     drivePid.doneTime = BIL;
     turnPid.doneTime = BIL;
     curvePid.doneTime = BIL;
-    arcData::init(start, target, rMag, rotationDirection);
+    arcData::init(start, target, rMag, rotationDir);
     arcData::wait = wait;
 }
+// new: untested....
+void pidDriveArcInit(Point start, Point target, Point targetDir, int rotationDir, int wait) {
+    double curA = odometry.getA();
+    Point dir(cos(curA), sin(curA));
+    Point unitR0 = dir.rotate(rotationDir).unit();
+    Point unitR1 = targetDir.rotate(rotationDir).unit();
+    double rMag = (start.x - target.x) / (unitR1.x - unitR0.x);
+    pidDriveArcInit(start, target, rMag, rotationDir, wait);
+}
 
-void pidFollowArcInit(Point start, Point target, double rMag, int rotationDirection, int wait) {
-    pidDriveArcInit(start, target, rMag, rotationDirection, wait);
+void pidFollowArcInit(Point start, Point target, double rMag, int rotationDir, int wait) {
+    pidDriveArcInit(start, target, rMag, rotationDir, wait);
     arcData::followArc = true;
 }
 void pidDriveArcBias(int b) { arcData::bias = b; }

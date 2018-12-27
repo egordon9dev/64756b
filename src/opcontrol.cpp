@@ -54,7 +54,7 @@ void opcontrol() {
     int driveDir = 1;
     int nBalls = 0;
     int intakeT0 = BIL;
-    if (1) {
+    if (0) {
         odometry.setA(PI / 2);
         odometry.setX(0);
         odometry.setY(0);
@@ -202,13 +202,14 @@ void opcontrol() {
             } else if (curClicks[ctlrIdxL2] && !prevClicks[ctlrIdxL2]) {
                 intakeState = IntakeState::ALL;
                 intakeT0 = millis();
+            } else if (curClicks[ctlrIdxL1]) {
+                intakeState = IntakeState::FRONT;
             }
             if (isBallIn() && intakeState == IntakeState::ALL && millis() - intakeT0 > 500) {
-                intakeState = IntakeState::FRONT;
+                intakeState = IntakeState::NONE;
                 nBalls++;
             }
         }
-        if (flywheelPid.sensVal < 0.5 && intakeState == IntakeState::ALL) { intakeState = IntakeState::FRONT; }
         setIntake(intakeState);
 
         delete[] allClicks[0];

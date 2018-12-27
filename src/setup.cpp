@@ -86,8 +86,11 @@ void runMotorTest() {
 //------------ Intake ---------------
 void setIntake(int n) {
     n = clamp(n, -12000, 12000);
+    static int prevFly = getFlywheel();
+    if (getFlywheel() - prevFly < 15 && n < 0) n = 0;
     n = intakeSaver.getPwr(n, mtr5.get_position());
     mtr5.move_voltage(n);
+    prevFly = getFlywheel();
 }
 void intakeNone() { setIntake(0); }
 void intakeFront() { setIntake(12000); }
