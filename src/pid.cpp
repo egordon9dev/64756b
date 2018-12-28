@@ -183,6 +183,74 @@ bool pidDrive() {
     prevPos = pos;
     return doneT + wait < millis();
 }
+namespace driveLineData {
+Point start, target, delta;
+int wait;
+int doneT;
+void init(Point s, Point t, int w) {
+    start = s;
+    target = t;
+    delta = target - start;
+    wait = w;
+    doneT = BIL;
+}
+}  // namespace driveLineData
+void pidDriveLineInit(Point start, Point target, const int wait) {
+    // prevent div by 0 errors
+    if (start.x == 0.0) start.x = 0.001;
+    if (start.y == 0.0) start.y = 0.001;
+    if (target.x == 0.0) target.x = 0.001;
+    if (target.y == 0.0) target.y = 0.001;
+    drivePid.doneTime = BIL;
+    turnPid.doneTime = BIL;
+    driveLineData::init(start, target, wait);
+}
+bool pidDriveLine() {
+    using driveLineData::delta;
+    using driveLineData::doneT;
+    using driveLineData::start;
+    using driveLineData::target;
+    using driveLineData::wait;
+    Point pos(odometry.getX(), odometry.getY());
+    static Point prevPos(0, 0);
+    Point toTarget = target - pos;
+    double a = PI / 2 - atan(0.2 * (toTarget * delta) / toTarget.magCross(delta));
+    if (toTarget < delta) a *= -1;
+    Point targetDir = polarToRect(1, a);
+    double curA = odometry.getA();
+    Point orientationDir(cos(curA), sin(curA));
+    double aErr = (orientationDir * targetDir) / (orientationDir.mag() * targetDir.mag());
+    // error detection
+    // allow for driving backwards
+    int driveDir = 1;
+    if (aErr > PI / 2) {
+        driveDir = -1;
+        aErr = PI - aErr;
+    }
+    if (orientationDir < toTarget) aErr *= -driveDir;
+    if (orientationDir > toTarget) aErr *= driveDir;
+
+    // error correction
+    turnPid.sensVal = aErr;
+    turnPid.target = 0.0;
+    drivePid.target = 0.0;
+    drivePid.sensVal = toTarget.mag() * cos(aErr);
+    int turnPwr = clamp((int)turnPid.update(), -8000, 8000);
+    int drivePwr = clamp((int)drivePid.update(), -8000, 8000);
+    // prevent turn saturation
+    // if (abs(turnPwr) > 0.2 * abs(drivePwr)) turnPwr = (turnPwr < 0 ? -1 : 1) * 0.2 * abs(drivePwr);
+    setDL(-drivePwr * driveDir - turnPwr);
+    setDR(-drivePwr * driveDir + turnPwr);
+
+    if (fabs(drivePid.sensVal) < 1 && (pos - prevPos).mag() < 0.01) {
+        if (doneT > millis()) doneT = millis();
+    } else {
+        doneT = BIL;
+    }
+    prevPos = pos;
+    return doneT + wait < millis();
+}
+
 int g_pidTurnLimit = 12000;
 namespace turnData {
 double angle;
@@ -283,15 +351,6 @@ void pidDriveArcInit(Point start, Point target, double rMag, int rotationDir, in
     curvePid.doneTime = BIL;
     arcData::init(start, target, rMag, rotationDir);
     arcData::wait = wait;
-}
-// new: untested....
-void pidDriveArcInit(Point start, Point target, Point targetDir, int rotationDir, int wait) {
-    double curA = odometry.getA();
-    Point dir(cos(curA), sin(curA));
-    Point unitR0 = dir.rotate(rotationDir).unit();
-    Point unitR1 = targetDir.rotate(rotationDir).unit();
-    double rMag = (start.x - target.x) / (unitR1.x - unitR0.x);
-    pidDriveArcInit(start, target, rMag, rotationDir, wait);
 }
 
 void pidFollowArcInit(Point start, Point target, double rMag, int rotationDir, int wait) {

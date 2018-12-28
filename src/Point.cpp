@@ -22,7 +22,7 @@ bool operator>(const Point& p1, const Point& p2) {
     if (p1RotCCW * p2 < -0.001) return true;
     return false;
 }
-
+double Point::magCross(const Point& p) { return fabs(this->x * p.y - this->y * p.x); }
 double Point::mag() const { return sqrt(pow(x, 2.0) + pow(y, 2.0)); }
 Point Point::rotate(int dir) const {
     if (dir > 0) {

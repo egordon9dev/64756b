@@ -38,11 +38,12 @@ class Odometry_t {
 
 void pidDriveInit(Point target, const int wait);
 bool pidDrive();
+void pidDriveLineInit(Point start, Point target, const int wait);
+bool pidDriveLine();
 void pidTurnInit(const double angle, const int wait);
 bool pidTurn();
 bool pidTurnSweep(double tL, double tR, int wait);
 void pidDriveArcInit(Point start, Point target, double rMag, int rotationDir, int wait);
-void pidDriveArcInit(Point start, Point target, Point targetDir, int rotationDir, int wait);
 void pidFollowArcInit(Point start, Point target, double rMag, int rotationDir, int wait);
 bool pidDriveArc();
 void pidDriveArcBias(int b);

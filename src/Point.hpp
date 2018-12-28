@@ -11,6 +11,7 @@ class Point {
     friend double operator*(const Point& p1, const Point& p2);
     friend bool operator>(const Point& p1, const Point& p2);
     friend bool operator<(const Point& p1, const Point& p2);
+    double magCross(const Point& p);
     double mag() const;
     Point abs();
     Point unit();
